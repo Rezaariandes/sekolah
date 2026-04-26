@@ -318,7 +318,7 @@ body::before {
 const TOTAL_SECONDS = 3600; // 60 menit
 const LETTERS = ['A','B','C','D','E'];
 
-const API_URL = "https://script.google.com/macros/s/AKfycby8QJK2zHTdoQJHXzdUTpPULtojBE96ED_1VvLNMuPx2s6ReOoKVMt6GsKGywBXcLhfwQ/exec";
+const API_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTuu257QOpY0s5cTOnbA6-sv3kmHu2x9OOn858NWvqezTR4UdGDJfOtAsRd-50goZbZN3cYLT0A5Kdn/pub?output=csv";
 
 // ── Baca parameter dari URL (dikirim oleh klikcbt.html) ──
 // Format: exam.html?nama=X&wa=X&tingkat=X&kelas=X&mapel=X
@@ -565,12 +565,54 @@ function selesaiUjian() {
 
   try {
     const res  = await fetch(API_URL);
-    const data = await res.json();
+    const csvText = await res.text();
+
+    // ── Parser CSV sederhana (handle koma di dalam tanda kutip) ──
+    function parseCSV(text) {
+      const lines = text.trim().split(/\r?\n/);
+      if (lines.length < 2) return [];
+      const headers = splitCSVLine(lines[0]).map(h => h.trim());
+      return lines.slice(1).map(line => {
+        const vals = splitCSVLine(line);
+        const obj = {};
+        headers.forEach((h, i) => { obj[h] = (vals[i] || '').trim(); });
+        return obj;
+      });
+    }
+    function splitCSVLine(line) {
+      const result = []; let cur = ''; let inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (c === '"') { inQ = !inQ; }
+        else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+        else { cur += c; }
+      }
+      result.push(cur);
+      return result;
+    }
+
+    const rawData = parseCSV(csvText);
+
+    // ── Normalisasi kolom CSV ke format yang dipakai kode ──
+    const data = rawData.map(row => ({
+      tingkat:       row['tingkat']       || row['Tingkat']       || '',
+      kelas:         row['kelas']         || row['Kelas']         || '',
+      mapel:         row['mapel']         || row['Mapel']         || '',
+      pertanyaan:    row['pertanyaan']    || row['Pertanyaan']    || row['soal'] || row['Soal'] || '',
+      jawaban_benar: row['jawaban_benar'] || row['Jawaban_Benar'] || row['kunci']|| row['Kunci']|| '',
+      pilihan: [
+        row['A'] || row['a'] || row['pilihan_a'] || '',
+        row['B'] || row['b'] || row['pilihan_b'] || '',
+        row['C'] || row['c'] || row['pilihan_c'] || '',
+        row['D'] || row['d'] || row['pilihan_d'] || '',
+        row['E'] || row['e'] || row['pilihan_e'] || '',
+      ].filter(p => p !== '')
+    }));
 
     let filtered = data.filter(s =>
-      s.tingkat === tingkat &&
-      String(s.kelas) === String(kelas) &&
-      s.mapel === mapel
+      s.tingkat.trim() === tingkat.trim() &&
+      String(s.kelas).trim() === String(kelas).trim() &&
+      s.mapel.trim() === mapel.trim()
     );
 
     if (!filtered.length) {
