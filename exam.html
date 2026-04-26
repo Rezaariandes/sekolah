@@ -318,46 +318,73 @@ body::before {
 const TOTAL_SECONDS = 3600; // 60 menit
 const LETTERS = ['A','B','C','D','E'];
 
-// ── Baca data sesi: coba dari URL param dulu, fallback ke sessionStorage ──
-(function() {
-  const params = new URLSearchParams(window.location.search);
-  const encoded = params.get('sesi');
-  if (encoded) {
-    try {
-      const sesi = JSON.parse(decodeURIComponent(atob(encoded)));
-      sessionStorage.setItem('examSoal',    JSON.stringify(sesi.soal));
-      sessionStorage.setItem('examNama',    sesi.nama);
-      sessionStorage.setItem('examWA',      sesi.wa);
-      sessionStorage.setItem('examTingkat', sesi.tingkat);
-      sessionStorage.setItem('examKelas',   sesi.kelas);
-      sessionStorage.setItem('examMapel',   sesi.mapel);
-      sessionStorage.removeItem('examEndTime');
-      sessionStorage.removeItem('examJawaban');
-      // Bersihkan URL agar tidak reload dengan param lama
-      history.replaceState(null, '', window.location.pathname);
-    } catch(e) { console.warn('Gagal parse sesi dari URL', e); }
-  }
-})();
+const API_URL = "https://script.google.com/macros/s/AKfycby8QJK2zHTdoQJHXzdUTpPULtojBE96ED_1VvLNMuPx2s6ReOoKVMt6GsKGywBXcLhfwQ/exec";
 
-const soalAktif  = JSON.parse(sessionStorage.getItem('examSoal') || '[]');
-const namaSiswa  = sessionStorage.getItem('examNama') || '';
-const tingkat    = sessionStorage.getItem('examTingkat') || '';
-const kelas      = sessionStorage.getItem('examKelas') || '';
-const mapel      = sessionStorage.getItem('examMapel') || '';
-const namaUjian  = `${mapel} · ${tingkat} Kelas ${kelas}`;
+// ── Baca parameter dari URL (dikirim oleh klikcbt.html) ──
+// Format: exam.html?nama=X&wa=X&tingkat=X&kelas=X&mapel=X
+const _p      = new URLSearchParams(window.location.search);
+const _nama   = _p.get('nama')    || sessionStorage.getItem('examNama')    || '';
+const _wa     = _p.get('wa')      || sessionStorage.getItem('examWA')      || '';
+const _tingkat= _p.get('tingkat') || sessionStorage.getItem('examTingkat') || '';
+const _kelas  = _p.get('kelas')   || sessionStorage.getItem('examKelas')   || '';
+const _mapel  = _p.get('mapel')   || sessionStorage.getItem('examMapel')   || '';
 
-// Jika tidak ada sesi, kembalikan ke index
-if (!soalAktif.length || !namaSiswa) {
+if (!_nama || !_tingkat || !_kelas || !_mapel) {
   alert("Sesi tidak ditemukan. Silakan daftar ulang.");
   window.location.href = 'index.html';
 }
 
+// Simpan identitas ke sessionStorage & bersihkan URL
+sessionStorage.setItem('examNama',    _nama);
+sessionStorage.setItem('examWA',      _wa);
+sessionStorage.setItem('examTingkat', _tingkat);
+sessionStorage.setItem('examKelas',   _kelas);
+sessionStorage.setItem('examMapel',   _mapel);
+if (_p.get('nama')) history.replaceState(null, '', window.location.pathname);
+
 // Terapkan tema warna
-if (tingkat) document.body.classList.add('theme-' + tingkat);
+if (_tingkat) document.body.classList.add('theme-' + _tingkat);
+
+// Variabel global sesi
+let soalAktif = [];
+const namaSiswa = _nama;
+const tingkat   = _tingkat;
+const kelas     = _kelas;
+const mapel     = _mapel;
+const namaUjian = `${mapel} · ${tingkat} Kelas ${kelas}`;
 
 // Tampilkan identitas di topbar
 document.getElementById('student-name').innerText = namaSiswa;
 document.getElementById('student-subject').innerText = namaUjian;
+
+// ── Fetch soal dari API, lalu mulai ujian ──
+(async function initExam() {
+  try {
+    const res  = await fetch(API_URL);
+    const data = await res.json();
+    let filtered = data.filter(s =>
+      s.tingkat === tingkat &&
+      String(s.kelas) === String(kelas) &&
+      s.mapel === mapel
+    );
+    if (!filtered.length) {
+      alert("Belum ada soal untuk kriteria ini. Hubungi pengawas.");
+      window.location.href = 'index.html';
+      return;
+    }
+    // Ambil max 40 soal acak
+    soalAktif = filtered.sort(() => 0.5 - Math.random()).slice(0, 40);
+    sessionStorage.removeItem('examEndTime');
+    sessionStorage.removeItem('examJawaban');
+
+    // Mulai ujian
+    buildNavGrid();
+    renderSoal();
+    startTimer();
+  } catch(e) {
+    alert("Gagal memuat soal. Periksa koneksi internet.");
+  }
+})();
 
 // ── State ──
 let idx = 0;
@@ -560,10 +587,7 @@ function selesaiUjian() {
   window.location.href = 'result.html';
 }
 
-// ── Init ──
-buildNavGrid();
-renderSoal();
-startTimer();
+// ── Init dipanggil oleh initExam() di atas ──
 </script>
 </body>
 </html>
