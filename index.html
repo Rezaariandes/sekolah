@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ujian Online — Daftar</title>
+<title>KlikCBT — Ujian Online</title>
 <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;0,900;1,400&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ══ ROOT & THEMES ══ */
@@ -193,13 +193,7 @@ select option { background: #fff; color: #18181b; }
   .panel-right { padding: 28px 20px 36px; }
 }
 
-/* ══ IFRAME OVERLAY ══ */
-#exam-frame-wrap {
-  display: none;
-  position: fixed; inset: 0; z-index: 200;
-  background: #f0f4ff;
-  flex-direction: column;
-}
+/* ══ IFRAME OVERLAY (tidak digunakan — exam dibuka langsung) ══ */
 #exam-frame-wrap.aktif { display: flex; }
 #exam-frame {
   width: 100%; flex: 1;
@@ -220,6 +214,9 @@ select option { background: #fff; color: #18181b; }
   animation: spin 0.8s linear infinite;
 }
 #frame-loading p { font-size: 14px; color: var(--lo); font-weight: 500; }
+#exam-frame {
+  flex: 1; width: 100%; border: none;
+}
 </style>
 </head>
 <body>
@@ -230,17 +227,7 @@ select option { background: #fff; color: #18181b; }
   <div class="loading-txt">Memuat soal ujian...</div>
 </div>
 
-<!-- Iframe Exam Overlay — menggantikan redirect, URL tetap di index.html -->
-<div id="exam-frame-wrap">
-  <div id="frame-loading">
-    <div class="fl-spinner"></div>
-    <p>Menyiapkan ruang ujian...</p>
-  </div>
-  <iframe id="exam-frame" allowfullscreen
-    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
-    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation">
-  </iframe>
-</div>
+<!-- Exam dibuka langsung via window.location — tidak ada iframe -->
 
 <div class="setup-wrap">
   <!-- Panel Kiri -->
@@ -307,12 +294,7 @@ select option { background: #fff; color: #18181b; }
         <label>Mata Pelajaran</label>
         <div class="input-wrap">
           <span class="input-icon">⬡</span>
-          <select id="mapel">
-            <option value="">— Pilih Mapel —</option>
-            <option value="Matematika">Matematika</option>
-            <option value="IPA">IPA</option>
-            <option value="Biologi">Biologi</option>
-          </select>
+          <select id="mapel"><option value="">— Pilih Tingkat dulu —</option></select>
         </div>
       </div>
 
@@ -332,14 +314,24 @@ select option { background: #fff; color: #18181b; }
 // ════════════════════════════════════════════════
 //  KONFIGURASI — sesuaikan baris ini saja
 // ════════════════════════════════════════════════
-const API_URL       = "https://script.google.com/macros/s/AKfycby8QJK2zHTdoQJHXzdUTpPULtojBE96ED_1VvLNMuPx2s6ReOoKVMt6GsKGywBXcLhfwQ/exec";
 const EXAM_BASE_URL = "https://rezaariandes.github.io/sekolah"; // tanpa slash di akhir
 // ════════════════════════════════════════════════
+
+// ── Daftar mapel per tingkat (harus sama persis dengan SOAL_CONFIG di exam.html) ──
+const MAPEL_PER_TINGKAT = {
+  SD:  ["IPAS", "Matematika", "Bahasa Indonesia", "PKn", "Bahasa Inggris"],
+  SMP: ["Matematika", "Fisika", "Biologi", "Bahasa Indonesia", "Bahasa Inggris",
+        "Sejarah", "Geografi", "Pendidikan Pancasila"],
+  SMA: ["Pendidikan Agama dan Budi Pekerti", "Pendidikan Pancasila",
+        "Bahasa Indonesia", "Matematika", "Bahasa Inggris", "Sejarah",
+        "Pendidikan Jasmani, Olahraga, dan Kesehatan (PJOK)"],
+};
 
 ['userName','userWA','tingkat','kelas','mapel'].forEach(id => {
   document.getElementById(id).addEventListener('change', cekFormLengkap);
   document.getElementById(id).addEventListener('input',  cekFormLengkap);
 });
+
 function cekFormLengkap() {
   const ok = document.getElementById('userName').value.trim() &&
              document.getElementById('userWA').value.trim() &&
@@ -350,26 +342,29 @@ function cekFormLengkap() {
 }
 
 function updateKelasPilihan() {
-  const t = document.getElementById('tingkat').value;
+  const t  = document.getElementById('tingkat').value;
+
+  // Update dropdown Kelas
   const ks = document.getElementById('kelas');
   ks.innerHTML = '<option value="">— Pilih Kelas —</option>';
   ({ SD:[1,2,3,4,5,6], SMP:[7,8,9], SMA:[10,11,12] }[t] || []).forEach(k =>
     ks.innerHTML += `<option value="${k}">Kelas ${k}</option>`);
+
+  // Update dropdown Mapel sesuai tingkat
+  const mp = document.getElementById('mapel');
+  mp.innerHTML = '<option value="">— Pilih Mapel —</option>';
+  (MAPEL_PER_TINGKAT[t] || []).forEach(m =>
+    mp.innerHTML += `<option value="${m}">${m}</option>`);
+
+  // Terapkan tema warna
   document.body.classList.remove('theme-SD','theme-SMP','theme-SMA');
   if (t) document.body.classList.add('theme-' + t);
+
+  cekFormLengkap();
 }
 
-let databaseSoal = [];
 window.onload = function() {
-  fetch(API_URL).then(r => r.json())
-    .then(data => {
-      databaseSoal = data;
-      document.getElementById('loading-overlay').classList.add('hidden');
-    })
-    .catch(() => {
-      document.getElementById('loading-overlay').classList.add('hidden');
-      alert("Gagal memuat soal. Periksa koneksi internet kamu!");
-    });
+  document.getElementById('loading-overlay').classList.add('hidden');
 };
 
 function mulaiUjian() {
@@ -383,43 +378,15 @@ function mulaiUjian() {
     alert("Mohon lengkapi semua data!"); return;
   }
 
-  let filtered = databaseSoal.filter(s =>
-    s.tingkat === tingkat && String(s.kelas) === String(kelas) && s.mapel === mapel);
-  if (!filtered.length) { alert("Belum ada soal untuk kriteria ini."); return; }
+  // Simpan ke sessionStorage — dibaca oleh exam.html di domain/path yang sama
+  sessionStorage.setItem('examNama',    nama);
+  sessionStorage.setItem('examWA',      noWA);
+  sessionStorage.setItem('examTingkat', tingkat);
+  sessionStorage.setItem('examKelas',   kelas);
+  sessionStorage.setItem('examMapel',   mapel);
 
-  const soalAktif = filtered.sort(() => 0.5 - Math.random()).slice(0, 40);
-
-  // Encode data sesi ke base64 untuk dikirim lewat URL ke iframe
-  const sesiObj = { soal: soalAktif, nama, wa: noWA, tingkat, kelas, mapel };
-  const encoded = btoa(encodeURIComponent(JSON.stringify(sesiObj)));
-  const examURL = `${EXAM_BASE_URL}/exam.html?sesi=${encoded}`;
-
-  // Tampilkan overlay iframe — URL di address bar TETAP di index.html
-  const wrap  = document.getElementById('exam-frame-wrap');
-  const frame = document.getElementById('exam-frame');
-  const fl    = document.getElementById('frame-loading');
-
-  wrap.classList.add('aktif');
-  frame.src = examURL;
-
-  // Sembunyikan loading spinner setelah iframe selesai load
-  frame.onload = () => {
-    setTimeout(() => fl.classList.add('hidden'), 400);
-  };
-
-  // Cegah tombol back browser menutup ujian tanpa sengaja
-  history.pushState({ ujian: true }, '', window.location.href);
-  window.onpopstate = function(e) {
-    if (document.getElementById('exam-frame-wrap').classList.contains('aktif')) {
-      const konfirm = confirm("Apakah kamu yakin ingin keluar dari ujian?");
-      if (konfirm) {
-        wrap.classList.remove('aktif');
-        frame.src = '';
-      } else {
-        history.pushState({ ujian: true }, '', window.location.href);
-      }
-    }
-  };
+  // Redirect langsung — sessionStorage terbaca karena same-origin
+  window.location.href = `${EXAM_BASE_URL}/exam.html`;
 }
 </script>
 </body>
