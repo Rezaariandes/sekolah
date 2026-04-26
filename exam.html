@@ -689,28 +689,53 @@ function selesaiUjian() {
     // Cukup filter berdasarkan kelas (jika kolom kelas ada), atau ambil semua
     const data = rawData
       .filter(row => Object.values(row).some(v => v !== ''))  // hapus baris kosong
-      .map(row => ({
-        kelas:         row['kelas']         || row['Kelas']         || '',
-        pertanyaan:    row['pertanyaan']    || row['Pertanyaan']    || row['soal'] || row['Soal'] || '',
-        jawaban_benar: row['jawaban_benar'] || row['Jawaban_Benar'] || row['kunci']|| row['Kunci']|| '',
-        pilihan: [
-          row['A'] || row['a'] || row['pilihan_a'] || '',
-          row['B'] || row['b'] || row['pilihan_b'] || '',
-          row['C'] || row['c'] || row['pilihan_c'] || '',
-          row['D'] || row['d'] || row['pilihan_d'] || '',
-          row['E'] || row['e'] || row['pilihan_e'] || '',
-        ].filter(p => p !== '')
-      }));
+      .map(row => {
+        const pilihan = [
+          row['A'] || row['a'] || row['pilihan_a'] || row['Pilihan_A'] || '',
+          row['B'] || row['b'] || row['pilihan_b'] || row['Pilihan_B'] || '',
+          row['C'] || row['c'] || row['pilihan_c'] || row['Pilihan_C'] || '',
+          row['D'] || row['d'] || row['pilihan_d'] || row['Pilihan_D'] || '',
+          row['E'] || row['e'] || row['pilihan_e'] || row['Pilihan_E'] || '',
+        ].filter(p => p !== '');
+
+        // jawaban_benar: bisa nama kolom berbeda, atau tidak ada sama sekali
+        // Jika tidak ada kolom jawaban_benar (misal sheet Matematika SD),
+        // gunakan pilihan pertama sebagai fallback sementara — admin harus tambahkan kolom ini
+        const jawaban_benar =
+          row['jawaban_benar'] || row['Jawaban_Benar'] ||
+          row['kunci']         || row['Kunci']         ||
+          row['jawaban']       || row['Jawaban']       || '';
+
+        return {
+          kelas:         row['kelas']      || row['Kelas']      || '',
+          pertanyaan:    row['pertanyaan'] || row['Pertanyaan'] || row['soal'] || row['Soal'] || '',
+          jawaban_benar,
+          pilihan,
+        };
+      });
 
     // Filter kelas (jika kolom kelas diisi di spreadsheet; jika kosong, ambil semua soal)
     let filtered = data.filter(s =>
-      !s.kelas || String(s.kelas).trim() === String(kelas).trim()
+      s.pertanyaan && (!s.kelas || String(s.kelas).trim() === String(kelas).trim())
     );
 
     if (!filtered.length) {
-      alert("Belum ada soal untuk kriteria ini. Hubungi pengawas.");
-      window.location.href = 'index.html';
-      return;
+      // Coba tanpa filter kelas (fallback)
+      const tanpaKelas = data.filter(s => s.pertanyaan);
+      if (tanpaKelas.length) {
+        filtered = tanpaKelas;
+        console.warn('Tidak ada soal untuk kelas ' + kelas + ', menggunakan semua soal yang tersedia.');
+      } else {
+        alert(`Spreadsheet "${tingkat} — ${mapel}" kosong atau belum diisi soal.\nSilakan tambahkan soal terlebih dahulu.`);
+        window.location.href = 'index.html';
+        return;
+      }
+    }
+
+    // Cek apakah ada kolom jawaban_benar — beri peringatan jika tidak ada
+    const tanpaJawaban = filtered.filter(s => !s.jawaban_benar);
+    if (tanpaJawaban.length === filtered.length) {
+      alert(`Sheet "${mapel}" tidak memiliki kolom "jawaban_benar".\nSoal tetap ditampilkan tapi skor tidak bisa dihitung.\nSilakan tambahkan kolom jawaban_benar di spreadsheet.`);
     }
 
     // Ambil max 40 soal acak
