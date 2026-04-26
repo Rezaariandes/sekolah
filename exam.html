@@ -392,7 +392,8 @@ function resolveCSVUrl(tingkat, mapel) {
   if (!cfg) return null;
   const gid = cfg.mapel[mapel];
   if (gid === undefined) return null;
-  return `https://docs.google.com/spreadsheets/d/e/${cfg._id}/pub?output=csv&gid=${gid}`;
+  // Gunakan format export (lebih stabil, hindari redirect panjang)
+  return `https://docs.google.com/spreadsheets/d/e/${cfg._id}/pub?gid=${gid}&single=true&output=csv`;
 }
 
 // ── Baca parameter dari URL (dikirim oleh klikcbt.html) ──
@@ -734,7 +735,15 @@ function selesaiUjian() {
 
   } catch(e) {
     document.getElementById('timer-display').textContent = '00:00';
-    alert("Gagal memuat soal. Periksa koneksi internet.");
+    console.error('initExam error:', e);
+    const msg = e?.message || String(e);
+    if (msg.includes('414') || msg.toLowerCase().includes('too long')) {
+      alert("Error: URL terlalu panjang.\nCoba bersihkan cache browser lalu muat ulang halaman.");
+    } else if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+      alert("Gagal terhubung ke server soal.\nPeriksa koneksi internet, lalu coba lagi.");
+    } else {
+      alert("Gagal memuat soal: " + msg + "\nHubungi admin jika masalah berlanjut.");
+    }
   }
 })();
 </script>
