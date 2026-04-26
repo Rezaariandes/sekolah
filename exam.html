@@ -357,34 +357,7 @@ const namaUjian = `${mapel} · ${tingkat} Kelas ${kelas}`;
 document.getElementById('student-name').innerText = namaSiswa;
 document.getElementById('student-subject').innerText = namaUjian;
 
-// ── Fetch soal dari API, lalu mulai ujian ──
-(async function initExam() {
-  try {
-    const res  = await fetch(API_URL);
-    const data = await res.json();
-    let filtered = data.filter(s =>
-      s.tingkat === tingkat &&
-      String(s.kelas) === String(kelas) &&
-      s.mapel === mapel
-    );
-    if (!filtered.length) {
-      alert("Belum ada soal untuk kriteria ini. Hubungi pengawas.");
-      window.location.href = 'index.html';
-      return;
-    }
-    // Ambil max 40 soal acak
-    soalAktif = filtered.sort(() => 0.5 - Math.random()).slice(0, 40);
-    sessionStorage.removeItem('examEndTime');
-    sessionStorage.removeItem('examJawaban');
-
-    // Mulai ujian
-    buildNavGrid();
-    renderSoal();
-    startTimer();
-  } catch(e) {
-    alert("Gagal memuat soal. Periksa koneksi internet.");
-  }
-})();
+// ── Fetch soal dijalankan setelah semua fungsi dideklarasikan (lihat bawah) ──
 
 // ── State ──
 let idx = 0;
@@ -468,11 +441,8 @@ function shuffleWithSeed(arr, seed) {
 
 const PRIMES = [104729,224737,350377,479909,611953,746773,882377,1020379,1159523,1299709];
 const pilihanOrder = {};
-soalAktif.forEach((soal, i) => {
-  const validPilihan = soal.pilihan.filter(p => p);
-  const seed = ((i + 1) * PRIMES[i % PRIMES.length]) >>> 0;
-  pilihanOrder[i] = shuffleWithSeed(validPilihan, seed);
-});
+// pilihanOrder diisi di dalam initExam() setelah soalAktif terisi
+
 
 // ── Navigator Grid ──
 function buildNavGrid() {
@@ -587,7 +557,53 @@ function selesaiUjian() {
   window.location.href = 'result.html';
 }
 
-// ── Init dipanggil oleh initExam() di atas ──
+// ── Init: fetch soal dulu, baru jalankan ujian ──
+// Diletakkan di BAWAH semua deklarasi fungsi agar tidak ada referensi yang belum siap
+(async function initExam() {
+  // Tampilkan loading di timer sementara soal dimuat
+  document.getElementById('timer-display').textContent = 'Memuat...';
+
+  try {
+    const res  = await fetch(API_URL);
+    const data = await res.json();
+
+    let filtered = data.filter(s =>
+      s.tingkat === tingkat &&
+      String(s.kelas) === String(kelas) &&
+      s.mapel === mapel
+    );
+
+    if (!filtered.length) {
+      alert("Belum ada soal untuk kriteria ini. Hubungi pengawas.");
+      window.location.href = 'index.html';
+      return;
+    }
+
+    // Ambil max 40 soal acak
+    soalAktif = filtered.sort(() => 0.5 - Math.random()).slice(0, 40);
+    sessionStorage.removeItem('examEndTime');
+    sessionStorage.removeItem('examJawaban');
+
+    // Reset jawaban karena soal baru
+    jawabanUser = {};
+
+    // Build pilihan order setelah soalAktif terisi
+    soalAktif.forEach((soal, i) => {
+      const validPilihan = soal.pilihan.filter(p => p);
+      const seed = ((i + 1) * PRIMES[i % PRIMES.length]) >>> 0;
+      pilihanOrder[i] = shuffleWithSeed(validPilihan, seed);
+    });
+
+    // Mulai ujian
+    buildNavGrid();
+    renderSoal();
+    startTimer();
+
+  } catch(e) {
+    document.getElementById('timer-display').textContent = '00:00';
+    alert("Gagal memuat soal. Periksa koneksi internet.");
+  }
+})();
 </script>
 </body>
 </html>
