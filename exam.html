@@ -318,7 +318,82 @@ body::before {
 const TOTAL_SECONDS = 3600; // 60 menit
 const LETTERS = ['A','B','C','D','E'];
 
-const API_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTuu257QOpY0s5cTOnbA6-sv3kmHu2x9OOn858NWvqezTR4UdGDJfOtAsRd-50goZbZN3cYLT0A5Kdn/pub?output=csv";
+// ══════════════════════════════════════════════════════════════════
+//  KONFIGURASI SUMBER SOAL — EDIT BAGIAN INI SAJA
+//  Langkah:
+//  1. Buka Google Spreadsheet tingkat yang sesuai
+//  2. File → Share → Publish to web → pilih tab mapel → CSV → copy link
+//  3. Isi SPREADSHEET_ID dan GID tiap tab di bawah ini
+//
+//  Format URL CSV per tab:
+//  https://docs.google.com/spreadsheets/d/e/SPREADSHEET_ID/pub?output=csv&gid=GID_TAB
+// ══════════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════════
+//  CARA MENDAPATKAN GID TIAP TAB:
+//  1. Buka spreadsheet di browser
+//  2. Klik nama tab (sheet) yang diinginkan
+//  3. Lihat URL → angka setelah "#gid=" adalah GID tab tersebut
+//     Contoh: ...spreadsheets/d/1aBcD.../edit#gid=987654321
+//             → GID = "987654321"
+//  Tab pertama SELALU gid=0
+// ══════════════════════════════════════════════════════════════════
+
+const SOAL_CONFIG = {
+
+  // ── SD ──────────────────────────────────────────────────────────
+  // Tab pertama adalah IPAS (gid=0), bukan Matematika
+  SD: {
+    _id: "2PACX-1vTf1y0JzJnyfI_EKzrfJjRB_PsgOkCzCW4knDBZ7TNg9rcxYxMj5gqaE_ONT5rcAIibmDznxL9X8xIv",
+    mapel: {
+      "IPAS"             : "0",
+      "Matematika"       : "1740600236",
+      "Bahasa Indonesia" : "948310843",
+      "PKn"              : "700533653",
+      "Bahasa Inggris"   : "1321766633",
+    }
+  },
+
+  // ── SMP ─────────────────────────────────────────────────────────
+  SMP: {
+    _id: "2PACX-1vTKNatYv72Y0YPKR-W1TgIbzoXMqk2MoO19x_ZyTHv0-Y04UoUK1XcykuGggsSh9WBwOSLDpuITRBo3",
+    mapel: {
+      "Matematika"           : "0",
+      "Fisika"               : "1052466164",
+      "Biologi"              : "1119171046",
+      "Bahasa Indonesia"     : "488278015",
+      "Bahasa Inggris"       : "1416093169",
+      "Sejarah"              : "1999033382",
+      "Geografi"             : "418037240",
+      "Pendidikan Pancasila" : "1007260452",
+    }
+  },
+
+  // ── SMA ─────────────────────────────────────────────────────────
+  // ⚠️  GID tab SMA belum diterima — isi setelah dapat dari spreadsheet
+  SMA: {
+    _id: "2PACX-1vRXAT5Yz3rtKwFv11E88Qt4WwdZ-frEO50mhWRAiC2bcLJqPgPThnnxI6F1fkSJ5D6jk_k_kgUqOhVK",
+    mapel: {
+      "Pendidikan Agama dan Budi Pekerti"                  : "0",
+      "Pendidikan Pancasila"                               : "793059494",
+      "Bahasa Indonesia"                                   : "1550922021",
+      "Matematika"                                         : "813778768",
+      "Bahasa Inggris"                                     : "1958590415",
+      "Sejarah"                                            : "1633816958",
+      "Pendidikan Jasmani, Olahraga, dan Kesehatan (PJOK)": "739515174",
+    }
+  },
+
+};
+
+// ── Fungsi resolusi URL otomatis berdasarkan tingkat & mapel ──
+function resolveCSVUrl(tingkat, mapel) {
+  const cfg = SOAL_CONFIG[tingkat];
+  if (!cfg) return null;
+  const gid = cfg.mapel[mapel];
+  if (gid === undefined) return null;
+  return `https://docs.google.com/spreadsheets/d/e/${cfg._id}/pub?output=csv&gid=${gid}`;
+}
 
 // ── Baca parameter dari URL (dikirim oleh klikcbt.html) ──
 // Format: exam.html?nama=X&wa=X&tingkat=X&kelas=X&mapel=X
@@ -563,56 +638,72 @@ function selesaiUjian() {
   // Tampilkan loading di timer sementara soal dimuat
   document.getElementById('timer-display').textContent = 'Memuat...';
 
+  // ── Parser CSV (handle koma di dalam tanda kutip) ──
+  function parseCSV(text) {
+    const lines = text.trim().split(/\r?\n/);
+    if (lines.length < 2) return [];
+    const headers = splitCSVLine(lines[0]).map(h => h.trim());
+    return lines.slice(1).map(line => {
+      const vals = splitCSVLine(line);
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = (vals[i] || '').trim(); });
+      return obj;
+    });
+  }
+  function splitCSVLine(line) {
+    const result = []; let cur = ''; let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQ = !inQ; }
+      else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+      else { cur += c; }
+    }
+    result.push(cur);
+    return result;
+  }
+
   try {
-    const res  = await fetch(API_URL);
-    const csvText = await res.text();
+    // ── Resolusi URL berdasarkan tingkat & mapel ──
+    const csvUrl = resolveCSVUrl(tingkat, mapel);
 
-    // ── Parser CSV sederhana (handle koma di dalam tanda kutip) ──
-    function parseCSV(text) {
-      const lines = text.trim().split(/\r?\n/);
-      if (lines.length < 2) return [];
-      const headers = splitCSVLine(lines[0]).map(h => h.trim());
-      return lines.slice(1).map(line => {
-        const vals = splitCSVLine(line);
-        const obj = {};
-        headers.forEach((h, i) => { obj[h] = (vals[i] || '').trim(); });
-        return obj;
-      });
-    }
-    function splitCSVLine(line) {
-      const result = []; let cur = ''; let inQ = false;
-      for (let i = 0; i < line.length; i++) {
-        const c = line[i];
-        if (c === '"') { inQ = !inQ; }
-        else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
-        else { cur += c; }
-      }
-      result.push(cur);
-      return result;
+    if (!csvUrl) {
+      alert(`Soal untuk "${tingkat} — ${mapel}" belum dikonfigurasi.\nHubungi admin untuk mengisi GID tab pada SOAL_CONFIG di exam.html.`);
+      window.location.href = 'index.html';
+      return;
     }
 
-    const rawData = parseCSV(csvText);
+    // Cegah akses jika GID belum diisi (masih placeholder)
+    if (csvUrl.includes('GID_')) {
+      alert(`GID tab "${mapel}" untuk ${tingkat} belum diisi di SOAL_CONFIG.\nBuka exam.html, cari bagian SOAL_CONFIG, dan isi GID yang sesuai.`);
+      window.location.href = 'index.html';
+      return;
+    }
 
-    // ── Normalisasi kolom CSV ke format yang dipakai kode ──
-    const data = rawData.map(row => ({
-      tingkat:       row['tingkat']       || row['Tingkat']       || '',
-      kelas:         row['kelas']         || row['Kelas']         || '',
-      mapel:         row['mapel']         || row['Mapel']         || '',
-      pertanyaan:    row['pertanyaan']    || row['Pertanyaan']    || row['soal'] || row['Soal'] || '',
-      jawaban_benar: row['jawaban_benar'] || row['Jawaban_Benar'] || row['kunci']|| row['Kunci']|| '',
-      pilihan: [
-        row['A'] || row['a'] || row['pilihan_a'] || '',
-        row['B'] || row['b'] || row['pilihan_b'] || '',
-        row['C'] || row['c'] || row['pilihan_c'] || '',
-        row['D'] || row['d'] || row['pilihan_d'] || '',
-        row['E'] || row['e'] || row['pilihan_e'] || '',
-      ].filter(p => p !== '')
-    }));
+    const res      = await fetch(csvUrl);
+    const csvText  = await res.text();
+    const rawData  = parseCSV(csvText);
 
+    // ── Normalisasi kolom CSV ──
+    // Tiap tab hanya berisi soal untuk 1 mapel, jadi tidak perlu filter tingkat/mapel
+    // Cukup filter berdasarkan kelas (jika kolom kelas ada), atau ambil semua
+    const data = rawData
+      .filter(row => Object.values(row).some(v => v !== ''))  // hapus baris kosong
+      .map(row => ({
+        kelas:         row['kelas']         || row['Kelas']         || '',
+        pertanyaan:    row['pertanyaan']    || row['Pertanyaan']    || row['soal'] || row['Soal'] || '',
+        jawaban_benar: row['jawaban_benar'] || row['Jawaban_Benar'] || row['kunci']|| row['Kunci']|| '',
+        pilihan: [
+          row['A'] || row['a'] || row['pilihan_a'] || '',
+          row['B'] || row['b'] || row['pilihan_b'] || '',
+          row['C'] || row['c'] || row['pilihan_c'] || '',
+          row['D'] || row['d'] || row['pilihan_d'] || '',
+          row['E'] || row['e'] || row['pilihan_e'] || '',
+        ].filter(p => p !== '')
+      }));
+
+    // Filter kelas (jika kolom kelas diisi di spreadsheet; jika kosong, ambil semua soal)
     let filtered = data.filter(s =>
-      s.tingkat.trim() === tingkat.trim() &&
-      String(s.kelas).trim() === String(kelas).trim() &&
-      s.mapel.trim() === mapel.trim()
+      !s.kelas || String(s.kelas).trim() === String(kelas).trim()
     );
 
     if (!filtered.length) {
