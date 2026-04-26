@@ -664,7 +664,29 @@ function selesaiUjian() {
   }
 
   try {
-    // ── Resolusi URL berdasarkan tingkat & mapel ──
+    // ══════════════════════════════════════════════════════════════
+    //  RESUME SESSION: Jika soal & urutan pilihan sudah tersimpan
+    //  di sessionStorage (misal karena F5), langsung pakai — tidak
+    //  perlu fetch ulang dan tidak reset waktu / jawaban.
+    // ══════════════════════════════════════════════════════════════
+    const cachedSoal   = sessionStorage.getItem('examSoalAktif');
+    const cachedOrder  = sessionStorage.getItem('examPilihanOrder');
+    const cachedEndTime = sessionStorage.getItem('examEndTime');
+
+    if (cachedSoal && cachedOrder && cachedEndTime) {
+      // Sesi masih aktif — muat ulang tanpa fetch
+      soalAktif = JSON.parse(cachedSoal);
+      const orderParsed = JSON.parse(cachedOrder);
+      Object.keys(orderParsed).forEach(k => { pilihanOrder[parseInt(k)] = orderParsed[k]; });
+
+      // jawabanUser sudah dimuat di atas dari sessionStorage
+      buildNavGrid();
+      renderSoal();
+      startTimer();
+      return; // selesai — skip fetch di bawah
+    }
+
+    // ── Sesi baru: resolusi URL berdasarkan tingkat & mapel ──
     const csvUrl = resolveCSVUrl(tingkat, mapel);
 
     if (!csvUrl) {
@@ -738,7 +760,7 @@ function selesaiUjian() {
       alert(`Sheet "${mapel}" tidak memiliki kolom "jawaban_benar".\nSoal tetap ditampilkan tapi skor tidak bisa dihitung.\nSilakan tambahkan kolom jawaban_benar di spreadsheet.`);
     }
 
-    // Ambil max 40 soal acak
+    // Ambil max 40 soal acak (sesi BARU — jawaban & timer ikut direset)
     soalAktif = filtered.sort(() => 0.5 - Math.random()).slice(0, 40);
     sessionStorage.removeItem('examEndTime');
     sessionStorage.removeItem('examJawaban');
@@ -752,6 +774,10 @@ function selesaiUjian() {
       const seed = ((i + 1) * PRIMES[i % PRIMES.length]) >>> 0;
       pilihanOrder[i] = shuffleWithSeed(validPilihan, seed);
     });
+
+    // Simpan soal & urutan pilihan ke sessionStorage agar tahan F5
+    sessionStorage.setItem('examSoalAktif',    JSON.stringify(soalAktif));
+    sessionStorage.setItem('examPilihanOrder', JSON.stringify(pilihanOrder));
 
     // Mulai ujian
     buildNavGrid();

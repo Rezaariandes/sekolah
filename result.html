@@ -260,7 +260,7 @@ function ulangiUjian() {
   // Hapus data hasil saja, data DB soal tetap agar tidak perlu fetch ulang
   ['hasilSkor','hasilNilai','hasilTotal','hasilWaktu','examJawaban',
    'examNama','examWA','examTingkat','examKelas','examMapel',
-   'examSoal','examEndTime'].forEach(k => sessionStorage.removeItem(k));
+   'examSoal','examEndTime','examSoalAktif','examPilihanOrder'].forEach(k => sessionStorage.removeItem(k));
   window.location.href = 'index.html';
 }
 </script>
