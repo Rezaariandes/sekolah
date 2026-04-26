@@ -318,7 +318,27 @@ body::before {
 const TOTAL_SECONDS = 3600; // 60 menit
 const LETTERS = ['A','B','C','D','E'];
 
-// ── Baca data sesi dari sessionStorage ──
+// ── Baca data sesi: coba dari URL param dulu, fallback ke sessionStorage ──
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const encoded = params.get('sesi');
+  if (encoded) {
+    try {
+      const sesi = JSON.parse(decodeURIComponent(atob(encoded)));
+      sessionStorage.setItem('examSoal',    JSON.stringify(sesi.soal));
+      sessionStorage.setItem('examNama',    sesi.nama);
+      sessionStorage.setItem('examWA',      sesi.wa);
+      sessionStorage.setItem('examTingkat', sesi.tingkat);
+      sessionStorage.setItem('examKelas',   sesi.kelas);
+      sessionStorage.setItem('examMapel',   sesi.mapel);
+      sessionStorage.removeItem('examEndTime');
+      sessionStorage.removeItem('examJawaban');
+      // Bersihkan URL agar tidak reload dengan param lama
+      history.replaceState(null, '', window.location.pathname);
+    } catch(e) { console.warn('Gagal parse sesi dari URL', e); }
+  }
+})();
+
 const soalAktif  = JSON.parse(sessionStorage.getItem('examSoal') || '[]');
 const namaSiswa  = sessionStorage.getItem('examNama') || '';
 const tingkat    = sessionStorage.getItem('examTingkat') || '';
