@@ -320,29 +320,10 @@ const LETTERS = ['A','B','C','D','E'];
 
 // ══════════════════════════════════════════════════════════════════
 //  KONFIGURASI SUMBER SOAL — EDIT BAGIAN INI SAJA
-//  Langkah:
-//  1. Buka Google Spreadsheet tingkat yang sesuai
-//  2. File → Share → Publish to web → pilih tab mapel → CSV → copy link
-//  3. Isi SPREADSHEET_ID dan GID tiap tab di bawah ini
-//
-//  Format URL CSV per tab:
-//  https://docs.google.com/spreadsheets/d/e/SPREADSHEET_ID/pub?output=csv&gid=GID_TAB
 // ══════════════════════════════════════════════════════════════════
-
-// ══════════════════════════════════════════════════════════════════
-//  CARA MENDAPATKAN GID TIAP TAB:
-//  1. Buka spreadsheet di browser
-//  2. Klik nama tab (sheet) yang diinginkan
-//  3. Lihat URL → angka setelah "#gid=" adalah GID tab tersebut
-//     Contoh: ...spreadsheets/d/1aBcD.../edit#gid=987654321
-//             → GID = "987654321"
-//  Tab pertama SELALU gid=0
-// ══════════════════════════════════════════════════════════════════
-
 const SOAL_CONFIG = {
 
   // ── SD ──────────────────────────────────────────────────────────
-  // Tab pertama adalah IPAS (gid=0), bukan Matematika
   SD: {
     _id: "2PACX-1vTf1y0JzJnyfI_EKzrfJjRB_PsgOkCzCW4knDBZ7TNg9rcxYxMj5gqaE_ONT5rcAIibmDznxL9X8xIv",
     mapel: {
@@ -370,7 +351,6 @@ const SOAL_CONFIG = {
   },
 
   // ── SMA ─────────────────────────────────────────────────────────
-  // ⚠️  GID tab SMA belum diterima — isi setelah dapat dari spreadsheet
   SMA: {
     _id: "2PACX-1vRXAT5Yz3rtKwFv11E88Qt4WwdZ-frEO50mhWRAiC2bcLJqPgPThnnxI6F1fkSJ5D6jk_k_kgUqOhVK",
     mapel: {
@@ -392,30 +372,45 @@ function resolveCSVUrl(tingkat, mapel) {
   if (!cfg) return null;
   const gid = cfg.mapel[mapel];
   if (gid === undefined) return null;
-  // Gunakan format export (lebih stabil, hindari redirect panjang)
   return `https://docs.google.com/spreadsheets/d/e/${cfg._id}/pub?gid=${gid}&single=true&output=csv`;
 }
 
+// ════════════════════════════════════════════════════════════════
+//  🔑  KUNCI STORAGE — agar tidak bentrok antar tab/sesi lain
+// ════════════════════════════════════════════════════════════════
+const SK = {
+  nama    : 'examNama',
+  wa      : 'examWA',
+  tingkat : 'examTingkat',
+  kelas   : 'examKelas',
+  mapel   : 'examMapel',
+  jawaban : 'examJawaban',
+  soal    : 'examSoalAktif',
+  order   : 'examPilihanOrder',
+  endTime : 'examEndTime',   // ← disimpan di localStorage agar tahan refresh
+};
+
 // ── Baca parameter dari URL (dikirim oleh klikcbt.html) ──
-// Format: exam.html?nama=X&wa=X&tingkat=X&kelas=X&mapel=X
 const _p      = new URLSearchParams(window.location.search);
-const _nama   = _p.get('nama')    || sessionStorage.getItem('examNama')    || '';
-const _wa     = _p.get('wa')      || sessionStorage.getItem('examWA')      || '';
-const _tingkat= _p.get('tingkat') || sessionStorage.getItem('examTingkat') || '';
-const _kelas  = _p.get('kelas')   || sessionStorage.getItem('examKelas')   || '';
-const _mapel  = _p.get('mapel')   || sessionStorage.getItem('examMapel')   || '';
+const _nama   = _p.get('nama')    || sessionStorage.getItem(SK.nama)    || '';
+const _wa     = _p.get('wa')      || sessionStorage.getItem(SK.wa)      || '';
+const _tingkat= _p.get('tingkat') || sessionStorage.getItem(SK.tingkat) || '';
+const _kelas  = _p.get('kelas')   || sessionStorage.getItem(SK.kelas)   || '';
+const _mapel  = _p.get('mapel')   || sessionStorage.getItem(SK.mapel)   || '';
 
 if (!_nama || !_tingkat || !_kelas || !_mapel) {
   alert("Sesi tidak ditemukan. Silakan daftar ulang.");
+  // Navigasi lewat parent jika di dalam iframe, fallback ke direct
+  try { window.parent.postMessage({ action: 'kembaliHome' }, '*'); } catch(e) {}
   window.location.href = 'index.html';
 }
 
 // Simpan identitas ke sessionStorage & bersihkan URL
-sessionStorage.setItem('examNama',    _nama);
-sessionStorage.setItem('examWA',      _wa);
-sessionStorage.setItem('examTingkat', _tingkat);
-sessionStorage.setItem('examKelas',   _kelas);
-sessionStorage.setItem('examMapel',   _mapel);
+sessionStorage.setItem(SK.nama,    _nama);
+sessionStorage.setItem(SK.wa,      _wa);
+sessionStorage.setItem(SK.tingkat, _tingkat);
+sessionStorage.setItem(SK.kelas,   _kelas);
+sessionStorage.setItem(SK.mapel,   _mapel);
 if (_p.get('nama')) history.replaceState(null, '', window.location.pathname);
 
 // Terapkan tema warna
@@ -433,11 +428,9 @@ const namaUjian = `${mapel} · ${tingkat} Kelas ${kelas}`;
 document.getElementById('student-name').innerText = namaSiswa;
 document.getElementById('student-subject').innerText = namaUjian;
 
-// ── Fetch soal dijalankan setelah semua fungsi dideklarasikan (lihat bawah) ──
-
 // ── State ──
 let idx = 0;
-let jawabanUser = JSON.parse(sessionStorage.getItem('examJawaban') || '{}');
+let jawabanUser = JSON.parse(sessionStorage.getItem(SK.jawaban) || '{}');
 let examFinished = false;
 let timeoutTriggered = false;
 let timerInterval = null;
@@ -448,15 +441,32 @@ const jawabanParsed = {};
 Object.keys(jawabanUser).forEach(k => jawabanParsed[parseInt(k)] = jawabanUser[k]);
 jawabanUser = jawabanParsed;
 
-// ── Timer ──
+// ════════════════════════════════════════════════════════════════
+//  ⏱️  TIMER — endTime disimpan di localStorage agar tahan refresh
+// ════════════════════════════════════════════════════════════════
 function startTimer() {
-  const saved = sessionStorage.getItem('examEndTime');
+  // localStorage key unik per sesi (nama+tingkat+mapel) agar tidak bentrok
+  const timerKey = `examEndTime_${_nama}_${_tingkat}_${_mapel}`;
+
+  const saved = localStorage.getItem(timerKey);
   if (saved) {
     examEndTime = parseInt(saved, 10);
+    // Jika waktu sudah habis saat halaman dibuka kembali
+    if (Date.now() >= examEndTime && !timeoutTriggered) {
+      timeoutTriggered = true;
+      setTimeout(() => {
+        document.getElementById('timeout-overlay').classList.add('show');
+      }, 800);
+      return;
+    }
   } else {
     examEndTime = Date.now() + TOTAL_SECONDS * 1000;
-    sessionStorage.setItem('examEndTime', examEndTime);
+    localStorage.setItem(timerKey, examEndTime);
   }
+
+  // Simpan timerKey di sessionStorage untuk diakses oleh selesaiUjian
+  sessionStorage.setItem(SK.endTime, timerKey);
+
   tickTimer();
   timerInterval = setInterval(tickTimer, 500);
 }
@@ -517,8 +527,6 @@ function shuffleWithSeed(arr, seed) {
 
 const PRIMES = [104729,224737,350377,479909,611953,746773,882377,1020379,1159523,1299709];
 const pilihanOrder = {};
-// pilihanOrder diisi di dalam initExam() setelah soalAktif terisi
-
 
 // ── Navigator Grid ──
 function buildNavGrid() {
@@ -586,8 +594,7 @@ function selectOption(el, idSoal, nilai) {
   document.querySelectorAll('.opt').forEach(o => o.classList.remove('selected'));
   el.classList.add('selected');
   jawabanUser[idSoal] = nilai;
-  // Simpan jawaban ke sessionStorage secara real-time
-  sessionStorage.setItem('examJawaban', JSON.stringify(jawabanUser));
+  sessionStorage.setItem(SK.jawaban, JSON.stringify(jawabanUser));
   updateNavGrid();
 }
 
@@ -616,7 +623,10 @@ function selesaiUjian() {
   if (examFinished) return;
   examFinished = true;
   clearInterval(timerInterval);
-  sessionStorage.removeItem('examEndTime');
+
+  // Hapus timer dari localStorage (sesi selesai)
+  const timerKey = sessionStorage.getItem(SK.endTime);
+  if (timerKey) localStorage.removeItem(timerKey);
 
   // Hitung skor
   let skor = 0;
@@ -624,22 +634,46 @@ function selesaiUjian() {
   const nilaiAkhir = ((skor / soalAktif.length) * 100).toFixed(2);
 
   // Simpan hasil ke sessionStorage → dibaca oleh result.html
-  sessionStorage.setItem('hasilSkor',       String(skor));
-  sessionStorage.setItem('hasilNilai',      nilaiAkhir);
-  sessionStorage.setItem('hasilTotal',      String(soalAktif.length));
-  sessionStorage.setItem('hasilWaktu',      new Date().toISOString());
-  sessionStorage.setItem('examJawaban',     JSON.stringify(jawabanUser));
+  sessionStorage.setItem('hasilSkor',   String(skor));
+  sessionStorage.setItem('hasilNilai',  nilaiAkhir);
+  sessionStorage.setItem('hasilTotal',  String(soalAktif.length));
+  sessionStorage.setItem('hasilWaktu',  new Date().toISOString());
+  sessionStorage.setItem('examJawaban', JSON.stringify(jawabanUser));
 
-  window.location.href = 'result.html';
+  // ════════════════════════════════════════════════════════
+  //  Navigasi ke result:
+  //  - Jika di dalam iframe → kirim postMessage ke index.html
+  //  - Jika dibuka langsung → redirect biasa
+  // ════════════════════════════════════════════════════════
+  const resultParams = new URLSearchParams({
+    nama:    namaSiswa,
+    wa:      _wa,
+    tingkat: tingkat,
+    kelas:   kelas,
+    mapel:   mapel,
+    skor:    String(skor),
+    nilai:   nilaiAkhir,
+    total:   String(soalAktif.length),
+  }).toString();
+
+  const dalamIframe = window.self !== window.top;
+  if (dalamIframe) {
+    // Beritahu index.html untuk navigasi ke result + hapus sesi ujian di shell
+    window.parent.postMessage({
+      action: 'selesai',
+      nav:    'result',
+      params: resultParams,
+    }, '*');
+  } else {
+    window.location.href = 'result.html?' + resultParams;
+  }
 }
 
 // ── Init: fetch soal dulu, baru jalankan ujian ──
-// Diletakkan di BAWAH semua deklarasi fungsi agar tidak ada referensi yang belum siap
 (async function initExam() {
-  // Tampilkan loading di timer sementara soal dimuat
   document.getElementById('timer-display').textContent = 'Memuat...';
 
-  // ── Parser CSV (handle koma di dalam tanda kutip) ──
+  // ── Parser CSV ──
   function parseCSV(text) {
     const lines = text.trim().split(/\r?\n/);
     if (lines.length < 2) return [];
@@ -664,53 +698,43 @@ function selesaiUjian() {
   }
 
   try {
-    // ══════════════════════════════════════════════════════════════
-    //  RESUME SESSION: Jika soal & urutan pilihan sudah tersimpan
-    //  di sessionStorage (misal karena F5), langsung pakai — tidak
-    //  perlu fetch ulang dan tidak reset waktu / jawaban.
-    // ══════════════════════════════════════════════════════════════
-    const cachedSoal   = sessionStorage.getItem('examSoalAktif');
-    const cachedOrder  = sessionStorage.getItem('examPilihanOrder');
-    const cachedEndTime = sessionStorage.getItem('examEndTime');
+    // ── RESUME SESSION: soal & pilihan sudah ada di sessionStorage ──
+    const cachedSoal    = sessionStorage.getItem(SK.soal);
+    const cachedOrder   = sessionStorage.getItem(SK.order);
+    // endTime sekarang di localStorage — cukup cek apakah timerKey ada
+    const timerKey      = sessionStorage.getItem(SK.endTime);
+    const cachedEndTime = timerKey ? localStorage.getItem(timerKey) : null;
 
     if (cachedSoal && cachedOrder && cachedEndTime) {
-      // Sesi masih aktif — muat ulang tanpa fetch
       soalAktif = JSON.parse(cachedSoal);
       const orderParsed = JSON.parse(cachedOrder);
       Object.keys(orderParsed).forEach(k => { pilihanOrder[parseInt(k)] = orderParsed[k]; });
-
-      // jawabanUser sudah dimuat di atas dari sessionStorage
       buildNavGrid();
       renderSoal();
       startTimer();
-      return; // selesai — skip fetch di bawah
+      return;
     }
 
-    // ── Sesi baru: resolusi URL berdasarkan tingkat & mapel ──
+    // ── Sesi baru ──
     const csvUrl = resolveCSVUrl(tingkat, mapel);
 
     if (!csvUrl) {
-      alert(`Soal untuk "${tingkat} — ${mapel}" belum dikonfigurasi.\nHubungi admin untuk mengisi GID tab pada SOAL_CONFIG di exam.html.`);
+      alert(`Soal untuk "${tingkat} — ${mapel}" belum dikonfigurasi.`);
       window.location.href = 'index.html';
       return;
     }
-
-    // Cegah akses jika GID belum diisi (masih placeholder)
     if (csvUrl.includes('GID_')) {
-      alert(`GID tab "${mapel}" untuk ${tingkat} belum diisi di SOAL_CONFIG.\nBuka exam.html, cari bagian SOAL_CONFIG, dan isi GID yang sesuai.`);
+      alert(`GID tab "${mapel}" untuk ${tingkat} belum diisi di SOAL_CONFIG.`);
       window.location.href = 'index.html';
       return;
     }
 
-    const res      = await fetch(csvUrl);
-    const csvText  = await res.text();
-    const rawData  = parseCSV(csvText);
+    const res     = await fetch(csvUrl);
+    const csvText = await res.text();
+    const rawData = parseCSV(csvText);
 
-    // ── Normalisasi kolom CSV ──
-    // Tiap tab hanya berisi soal untuk 1 mapel, jadi tidak perlu filter tingkat/mapel
-    // Cukup filter berdasarkan kelas (jika kolom kelas ada), atau ambil semua
     const data = rawData
-      .filter(row => Object.values(row).some(v => v !== ''))  // hapus baris kosong
+      .filter(row => Object.values(row).some(v => v !== ''))
       .map(row => {
         const pilihan = [
           row['A'] || row['a'] || row['pilihan_a'] || row['Pilihan_A'] || '',
@@ -720,66 +744,54 @@ function selesaiUjian() {
           row['E'] || row['e'] || row['pilihan_e'] || row['Pilihan_E'] || '',
         ].filter(p => p !== '');
 
-        // jawaban_benar: bisa nama kolom berbeda, atau tidak ada sama sekali
-        // Jika tidak ada kolom jawaban_benar (misal sheet Matematika SD),
-        // gunakan pilihan pertama sebagai fallback sementara — admin harus tambahkan kolom ini
         const jawaban_benar =
           row['jawaban_benar'] || row['Jawaban_Benar'] ||
           row['kunci']         || row['Kunci']         ||
           row['jawaban']       || row['Jawaban']       || '';
 
         return {
-          kelas:         row['kelas']      || row['Kelas']      || '',
-          pertanyaan:    row['pertanyaan'] || row['Pertanyaan'] || row['soal'] || row['Soal'] || '',
+          kelas:      row['kelas']      || row['Kelas']      || '',
+          pertanyaan: row['pertanyaan'] || row['Pertanyaan'] || row['soal'] || row['Soal'] || '',
           jawaban_benar,
           pilihan,
         };
       });
 
-    // Filter kelas (jika kolom kelas diisi di spreadsheet; jika kosong, ambil semua soal)
     let filtered = data.filter(s =>
       s.pertanyaan && (!s.kelas || String(s.kelas).trim() === String(kelas).trim())
     );
 
     if (!filtered.length) {
-      // Coba tanpa filter kelas (fallback)
       const tanpaKelas = data.filter(s => s.pertanyaan);
       if (tanpaKelas.length) {
         filtered = tanpaKelas;
-        console.warn('Tidak ada soal untuk kelas ' + kelas + ', menggunakan semua soal yang tersedia.');
       } else {
-        alert(`Spreadsheet "${tingkat} — ${mapel}" kosong atau belum diisi soal.\nSilakan tambahkan soal terlebih dahulu.`);
+        alert(`Spreadsheet "${tingkat} — ${mapel}" kosong atau belum diisi soal.`);
         window.location.href = 'index.html';
         return;
       }
     }
 
-    // Cek apakah ada kolom jawaban_benar — beri peringatan jika tidak ada
     const tanpaJawaban = filtered.filter(s => !s.jawaban_benar);
     if (tanpaJawaban.length === filtered.length) {
-      alert(`Sheet "${mapel}" tidak memiliki kolom "jawaban_benar".\nSoal tetap ditampilkan tapi skor tidak bisa dihitung.\nSilakan tambahkan kolom jawaban_benar di spreadsheet.`);
+      alert(`Sheet "${mapel}" tidak memiliki kolom "jawaban_benar". Skor tidak bisa dihitung.`);
     }
 
-    // Ambil max 40 soal acak (sesi BARU — jawaban & timer ikut direset)
     soalAktif = filtered.sort(() => 0.5 - Math.random()).slice(0, 40);
-    sessionStorage.removeItem('examEndTime');
-    sessionStorage.removeItem('examJawaban');
 
-    // Reset jawaban karena soal baru
+    // Reset jawaban & timer (sesi baru)
     jawabanUser = {};
+    sessionStorage.removeItem(SK.jawaban);
 
-    // Build pilihan order setelah soalAktif terisi
     soalAktif.forEach((soal, i) => {
       const validPilihan = soal.pilihan.filter(p => p);
       const seed = ((i + 1) * PRIMES[i % PRIMES.length]) >>> 0;
       pilihanOrder[i] = shuffleWithSeed(validPilihan, seed);
     });
 
-    // Simpan soal & urutan pilihan ke sessionStorage agar tahan F5
-    sessionStorage.setItem('examSoalAktif',    JSON.stringify(soalAktif));
-    sessionStorage.setItem('examPilihanOrder', JSON.stringify(pilihanOrder));
+    sessionStorage.setItem(SK.soal,  JSON.stringify(soalAktif));
+    sessionStorage.setItem(SK.order, JSON.stringify(pilihanOrder));
 
-    // Mulai ujian
     buildNavGrid();
     renderSoal();
     startTimer();
@@ -788,10 +800,8 @@ function selesaiUjian() {
     document.getElementById('timer-display').textContent = '00:00';
     console.error('initExam error:', e);
     const msg = e?.message || String(e);
-    if (msg.includes('414') || msg.toLowerCase().includes('too long')) {
-      alert("Error: URL terlalu panjang.\nCoba bersihkan cache browser lalu muat ulang halaman.");
-    } else if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
-      alert("Gagal terhubung ke server soal.\nPeriksa koneksi internet, lalu coba lagi.");
+    if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+      alert("Gagal terhubung ke server soal. Periksa koneksi internet, lalu coba lagi.");
     } else {
       alert("Gagal memuat soal: " + msg + "\nHubungi admin jika masalah berlanjut.");
     }
