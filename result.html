@@ -156,16 +156,23 @@ body::before {
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycby8QJK2zHTdoQJHXzdUTpPULtojBE96ED_1VvLNMuPx2s6ReOoKVMt6GsKGywBXcLhfwQ/exec";
 
-// ── Baca data hasil dari sessionStorage ──
-const skor       = sessionStorage.getItem('hasilSkor');
-const nilaiAkhir = sessionStorage.getItem('hasilNilai');
-const total      = sessionStorage.getItem('hasilTotal');
-const waktuISO   = sessionStorage.getItem('hasilWaktu');
-const nama       = sessionStorage.getItem('examNama');
-const noWA       = sessionStorage.getItem('examWA');
-const tingkat    = sessionStorage.getItem('examTingkat');
-const kelas      = sessionStorage.getItem('examKelas');
-const mapel      = sessionStorage.getItem('examMapel');
+// ── Baca data hasil dari sessionStorage, dengan fallback ke localStorage ──
+// (localStorage diisi oleh exam.html saat selesaiUjian, agar tahan refresh)
+let _ls = {};
+try {
+  const raw = localStorage.getItem('klikcbt_hasil');
+  if (raw) _ls = JSON.parse(raw);
+} catch(e) {}
+
+const skor       = sessionStorage.getItem('hasilSkor')    || _ls.skor    || '';
+const nilaiAkhir = sessionStorage.getItem('hasilNilai')   || _ls.nilai   || '';
+const total      = sessionStorage.getItem('hasilTotal')   || _ls.total   || '';
+const waktuISO   = sessionStorage.getItem('hasilWaktu')   || _ls.waktu   || '';
+const nama       = sessionStorage.getItem('examNama')     || _ls.nama    || '';
+const noWA       = sessionStorage.getItem('examWA')       || _ls.wa      || '';
+const tingkat    = sessionStorage.getItem('examTingkat')  || _ls.tingkat || '';
+const kelas      = sessionStorage.getItem('examKelas')    || _ls.kelas   || '';
+const mapel      = sessionStorage.getItem('examMapel')    || _ls.mapel   || '';
 const namaUjian  = `${mapel} · ${tingkat} Kelas ${kelas}`;
 
 const page = document.getElementById('result-page');
@@ -257,10 +264,18 @@ function kirimKeWA() {
 }
 
 function ulangiUjian() {
-  // Hapus data hasil saja, data DB soal tetap agar tidak perlu fetch ulang
+  // Hapus semua data sesi dari sessionStorage
   ['hasilSkor','hasilNilai','hasilTotal','hasilWaktu','examJawaban',
    'examNama','examWA','examTingkat','examKelas','examMapel',
    'examSoal','examEndTime','examSoalAktif','examPilihanOrder'].forEach(k => sessionStorage.removeItem(k));
+  // ★ Hapus juga dari localStorage
+  try {
+    localStorage.removeItem('klikcbt_hasil');
+    localStorage.removeItem('klikcbt_identity');
+    localStorage.removeItem('klikcbt_frame');
+    // Hapus timer key yang mungkin tertinggal
+    Object.keys(localStorage).filter(k => k.startsWith('examEndTime_')).forEach(k => localStorage.removeItem(k));
+  } catch(e) {}
   window.location.href = 'index.html';
 }
 </script>

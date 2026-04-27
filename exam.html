@@ -390,13 +390,21 @@ const SK = {
   endTime : 'examEndTime',   // ← disimpan di localStorage agar tahan refresh
 };
 
-// ── Baca parameter dari URL (dikirim oleh klikcbt.html) ──
+// ── Baca parameter dari URL, sessionStorage, atau localStorage (fallback refresh) ──
 const _p      = new URLSearchParams(window.location.search);
-const _nama   = _p.get('nama')    || sessionStorage.getItem(SK.nama)    || '';
-const _wa     = _p.get('wa')      || sessionStorage.getItem(SK.wa)      || '';
-const _tingkat= _p.get('tingkat') || sessionStorage.getItem(SK.tingkat) || '';
-const _kelas  = _p.get('kelas')   || sessionStorage.getItem(SK.kelas)   || '';
-const _mapel  = _p.get('mapel')   || sessionStorage.getItem(SK.mapel)   || '';
+
+// Fallback localStorage (diisi saat sesi pertama kali dimulai)
+let _lsIdentity = {};
+try {
+  const raw = localStorage.getItem('klikcbt_identity');
+  if (raw) _lsIdentity = JSON.parse(raw);
+} catch(e) {}
+
+const _nama   = _p.get('nama')    || sessionStorage.getItem(SK.nama)    || _lsIdentity.nama    || '';
+const _wa     = _p.get('wa')      || sessionStorage.getItem(SK.wa)      || _lsIdentity.wa      || '';
+const _tingkat= _p.get('tingkat') || sessionStorage.getItem(SK.tingkat) || _lsIdentity.tingkat || '';
+const _kelas  = _p.get('kelas')   || sessionStorage.getItem(SK.kelas)   || _lsIdentity.kelas   || '';
+const _mapel  = _p.get('mapel')   || sessionStorage.getItem(SK.mapel)   || _lsIdentity.mapel   || '';
 
 if (!_nama || !_tingkat || !_kelas || !_mapel) {
   alert("Sesi tidak ditemukan. Silakan daftar ulang.");
@@ -405,13 +413,19 @@ if (!_nama || !_tingkat || !_kelas || !_mapel) {
   window.location.href = 'index.html';
 }
 
-// Simpan identitas ke sessionStorage & bersihkan URL
+// Simpan identitas ke sessionStorage & localStorage (agar tahan refresh)
 sessionStorage.setItem(SK.nama,    _nama);
 sessionStorage.setItem(SK.wa,      _wa);
 sessionStorage.setItem(SK.tingkat, _tingkat);
 sessionStorage.setItem(SK.kelas,   _kelas);
 sessionStorage.setItem(SK.mapel,   _mapel);
-if (_p.get('nama')) history.replaceState(null, '', window.location.pathname);
+// ★ Backup ke localStorage agar params tidak hilang saat iframe di-reload
+try {
+  const lsKey = 'klikcbt_identity';
+  localStorage.setItem(lsKey, JSON.stringify({ nama:_nama, wa:_wa, tingkat:_tingkat, kelas:_kelas, mapel:_mapel, at: Date.now() }));
+} catch(e) {}
+// Jangan hapus params dari URL agar iframe bisa reload tanpa kehilangan data
+// (history.replaceState dihapus — URL params tetap ada)
 
 // Terapkan tema warna
 if (_tingkat) document.body.classList.add('theme-' + _tingkat);
@@ -633,12 +647,25 @@ function selesaiUjian() {
   soalAktif.forEach((s, i) => { if (jawabanUser[i] == s.jawaban_benar) skor++; });
   const nilaiAkhir = ((skor / soalAktif.length) * 100).toFixed(2);
 
+  const _waktuISO = new Date().toISOString();
+
   // Simpan hasil ke sessionStorage → dibaca oleh result.html
   sessionStorage.setItem('hasilSkor',   String(skor));
   sessionStorage.setItem('hasilNilai',  nilaiAkhir);
   sessionStorage.setItem('hasilTotal',  String(soalAktif.length));
-  sessionStorage.setItem('hasilWaktu',  new Date().toISOString());
+  sessionStorage.setItem('hasilWaktu',  _waktuISO);
   sessionStorage.setItem('examJawaban', JSON.stringify(jawabanUser));
+
+  // ★ Backup ke localStorage agar hasil tetap ada saat result.html di-refresh
+  try {
+    localStorage.setItem('klikcbt_hasil', JSON.stringify({
+      skor: String(skor), nilai: nilaiAkhir, total: String(soalAktif.length),
+      waktu: _waktuISO, nama: namaSiswa, wa: _wa,
+      tingkat, kelas, mapel,
+    }));
+    // Hapus identity (ujian selesai, tidak perlu dilanjutkan)
+    localStorage.removeItem('klikcbt_identity');
+  } catch(e) {}
 
   // ════════════════════════════════════════════════════════
   //  Navigasi ke result:

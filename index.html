@@ -149,7 +149,8 @@ const CFG = {
     exam  : "exam.html",
     result: "result.html",
   },
-  SK: "klikcbt_sesi",   // localStorage key
+  SK: "klikcbt_sesi",       // localStorage key — data sesi (nama, mapel, dll)
+  SK_FRAME: "klikcbt_frame", // localStorage key — URL iframe aktif
   MAX_AGE: 4 * 60 * 60 * 1000,  // 4 jam
 };
 // ════════════════════════════════════════════════════════════════
@@ -224,9 +225,17 @@ function loadFrame(pageName, paramsStr) {
   // Simpan/hapus sesi
   if (pageName === 'home') {
     clearSession();
+    // Hapus URL frame tersimpan saat kembali ke home
+    try { localStorage.removeItem(CFG.SK_FRAME); } catch(e) {}
   } else {
     // Pastikan params disimpan sebagai string murni
     saveSession(pageName, typeof paramsStr === 'string' ? paramsStr : '');
+    // ★ Simpan URL iframe aktif agar bisa di-restore saat shell di-refresh
+    try {
+      localStorage.setItem(CFG.SK_FRAME, JSON.stringify({
+        pageName, paramsStr: paramsStr || '', url, at: Date.now()
+      }));
+    } catch(e) {}
   }
 
   splashStart('Menghubungkan ke server...');
@@ -251,6 +260,13 @@ function doResume() {
 
 function doFresh() {
   clearSession();
+  // ★ Hapus semua localStorage sesi yang tersimpan
+  try {
+    localStorage.removeItem(CFG.SK_FRAME);
+    localStorage.removeItem('klikcbt_hasil');
+    localStorage.removeItem('klikcbt_identity');
+    Object.keys(localStorage).filter(k => k.startsWith('examEndTime_')).forEach(k => localStorage.removeItem(k));
+  } catch(e) {}
   loadFrame('home', '');
 }
 
@@ -291,13 +307,48 @@ window.addEventListener('message', function(e) {
 (function init() {
   const sesi = readSession();
 
-  if (sesi && sesi.page && sesi.page !== 'home') {
-    // ── Ada sesi tersimpan → tampilkan banner konfirmasi ──
+  // ── Deteksi REFRESH (bukan kunjungan baru / buka tab baru) ──
+  let isRefresh = false;
+  try {
+    const navEntries = performance && performance.getEntriesByType
+      ? performance.getEntriesByType('navigation')
+      : [];
+    if (navEntries.length && navEntries[0].type === 'reload') {
+      isRefresh = true;
+    } else if (performance && performance.navigation &&
+               performance.navigation.type === 1) {
+      isRefresh = true;
+    }
+  } catch(e) {}
+
+  // Baca URL frame yang terakhir aktif
+  let frameData = null;
+  try {
+    const raw = localStorage.getItem(CFG.SK_FRAME);
+    if (raw) {
+      frameData = JSON.parse(raw);
+      if (!frameData || Date.now() - frameData.at > CFG.MAX_AGE) frameData = null;
+    }
+  } catch(e) { frameData = null; }
+
+  if (isRefresh && frameData && frameData.url) {
+    // ── Shell di-refresh saat ujian/result aktif → restore iframe langsung ──
+    splashStart('Memulihkan sesi...');
+    frame.src = frameData.url;
+    frame.onload  = () => splashDone();
+    frame.onerror = () => {
+      clearInterval(_barTimer);
+      splashEl.classList.add('hide');
+      errDetail.textContent = 'Gagal memuat halaman dari server. Periksa koneksi internet.';
+      errScr.classList.add('show');
+    };
+
+  } else if (sesi && sesi.page && sesi.page !== 'home') {
+    // ── Ada sesi tersimpan (buka tab baru) → tampilkan banner konfirmasi ──
     splashEl.classList.add('hide');
 
-    // Isi detail sesi di banner
     try {
-      const p    = new URLSearchParams(sesi.params);
+      const p       = new URLSearchParams(sesi.params);
       const nama    = p.get('nama')    || '';
       const mapel   = p.get('mapel')   || '';
       const tingkat = p.get('tingkat') || '';
