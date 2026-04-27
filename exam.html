@@ -396,26 +396,27 @@ function resolveCSVUrl(tingkat, mapel) {
   return `https://docs.google.com/spreadsheets/d/e/${cfg._id}/pub?gid=${gid}&single=true&output=csv`;
 }
 
-// ── Baca parameter dari URL (dikirim oleh klikcbt.html) ──
+// ── Baca parameter dari URL (dikirim oleh index.html) ──
 // Format: exam.html?nama=X&wa=X&tingkat=X&kelas=X&mapel=X
+// Fallback urutan: URL param → sessionStorage → localStorage
 const _p      = new URLSearchParams(window.location.search);
-const _nama   = _p.get('nama')    || sessionStorage.getItem('examNama')    || '';
-const _wa     = _p.get('wa')      || sessionStorage.getItem('examWA')      || '';
-const _tingkat= _p.get('tingkat') || sessionStorage.getItem('examTingkat') || '';
-const _kelas  = _p.get('kelas')   || sessionStorage.getItem('examKelas')   || '';
-const _mapel  = _p.get('mapel')   || sessionStorage.getItem('examMapel')   || '';
+const _nama   = _p.get('nama')    || sessionStorage.getItem('examNama')    || localStorage.getItem('examNama')    || '';
+const _wa     = _p.get('wa')      || sessionStorage.getItem('examWA')      || localStorage.getItem('examWA')      || '';
+const _tingkat= _p.get('tingkat') || sessionStorage.getItem('examTingkat') || localStorage.getItem('examTingkat') || '';
+const _kelas  = _p.get('kelas')   || sessionStorage.getItem('examKelas')   || localStorage.getItem('examKelas')   || '';
+const _mapel  = _p.get('mapel')   || sessionStorage.getItem('examMapel')   || localStorage.getItem('examMapel')   || '';
 
 if (!_nama || !_tingkat || !_kelas || !_mapel) {
   alert("Sesi tidak ditemukan. Silakan daftar ulang.");
   window.location.href = 'index.html';
 }
 
-// Simpan identitas ke sessionStorage & bersihkan URL
-sessionStorage.setItem('examNama',    _nama);
-sessionStorage.setItem('examWA',      _wa);
-sessionStorage.setItem('examTingkat', _tingkat);
-sessionStorage.setItem('examKelas',   _kelas);
-sessionStorage.setItem('examMapel',   _mapel);
+// Simpan identitas ke sessionStorage DAN localStorage (tahan refresh/tutup tab)
+['examNama','examWA','examTingkat','examKelas','examMapel'].forEach(k => {
+  const val = {examNama:_nama, examWA:_wa, examTingkat:_tingkat, examKelas:_kelas, examMapel:_mapel}[k];
+  sessionStorage.setItem(k, val);
+  localStorage.setItem(k, val);
+});
 if (_p.get('nama')) history.replaceState(null, '', window.location.pathname);
 
 // Terapkan tema warna
@@ -437,11 +438,19 @@ document.getElementById('student-subject').innerText = namaUjian;
 
 // ── State ──
 let idx = 0;
-let jawabanUser = JSON.parse(sessionStorage.getItem('examJawaban') || '{}');
+let jawabanUser = JSON.parse(sessionStorage.getItem('examJawaban') || localStorage.getItem('examJawaban') || '{}');
 let examFinished = false;
 let timeoutTriggered = false;
 let timerInterval = null;
 let examEndTime = 0;
+
+// Peringatan saat refresh / tutup tab agar siswa tidak kehilangan sesi
+window.addEventListener('beforeunload', function(e) {
+  if (!examFinished) {
+    e.preventDefault();
+    e.returnValue = 'Ujian sedang berlangsung. Jika kamu meninggalkan halaman, sesi akan dilanjutkan saat kembali.';
+  }
+});
 
 // Konversi key string (dari JSON) ke number
 const jawabanParsed = {};
@@ -450,12 +459,13 @@ jawabanUser = jawabanParsed;
 
 // ── Timer ──
 function startTimer() {
-  const saved = sessionStorage.getItem('examEndTime');
+  const saved = sessionStorage.getItem('examEndTime') || localStorage.getItem('examEndTime');
   if (saved) {
     examEndTime = parseInt(saved, 10);
   } else {
     examEndTime = Date.now() + TOTAL_SECONDS * 1000;
     sessionStorage.setItem('examEndTime', examEndTime);
+    localStorage.setItem('examEndTime', examEndTime);
   }
   tickTimer();
   timerInterval = setInterval(tickTimer, 500);
@@ -586,8 +596,9 @@ function selectOption(el, idSoal, nilai) {
   document.querySelectorAll('.opt').forEach(o => o.classList.remove('selected'));
   el.classList.add('selected');
   jawabanUser[idSoal] = nilai;
-  // Simpan jawaban ke sessionStorage secara real-time
+  // Simpan jawaban ke sessionStorage & localStorage secara real-time
   sessionStorage.setItem('examJawaban', JSON.stringify(jawabanUser));
+  localStorage.setItem('examJawaban', JSON.stringify(jawabanUser));
   updateNavGrid();
 }
 
@@ -616,6 +627,9 @@ function selesaiUjian() {
   if (examFinished) return;
   examFinished = true;
   clearInterval(timerInterval);
+
+  // Hapus data sesi dari localStorage (ujian sudah selesai)
+  ['examEndTime','examSoalAktif','examPilihanOrder','examJawaban'].forEach(k => localStorage.removeItem(k));
   sessionStorage.removeItem('examEndTime');
 
   // Hitung skor
@@ -623,12 +637,18 @@ function selesaiUjian() {
   soalAktif.forEach((s, i) => { if (jawabanUser[i] == s.jawaban_benar) skor++; });
   const nilaiAkhir = ((skor / soalAktif.length) * 100).toFixed(2);
 
-  // Simpan hasil ke sessionStorage → dibaca oleh result.html
-  sessionStorage.setItem('hasilSkor',       String(skor));
-  sessionStorage.setItem('hasilNilai',      nilaiAkhir);
-  sessionStorage.setItem('hasilTotal',      String(soalAktif.length));
-  sessionStorage.setItem('hasilWaktu',      new Date().toISOString());
-  sessionStorage.setItem('examJawaban',     JSON.stringify(jawabanUser));
+  // Simpan hasil ke sessionStorage & localStorage → dibaca oleh result.html
+  const hasilData = {
+    hasilSkor:  String(skor),
+    hasilNilai: nilaiAkhir,
+    hasilTotal: String(soalAktif.length),
+    hasilWaktu: new Date().toISOString(),
+  };
+  Object.entries(hasilData).forEach(([k, v]) => {
+    sessionStorage.setItem(k, v);
+    localStorage.setItem(k, v);
+  });
+  sessionStorage.setItem('examJawaban', JSON.stringify(jawabanUser));
 
   window.location.href = 'result.html';
 }
@@ -669,9 +689,9 @@ function selesaiUjian() {
     //  di sessionStorage (misal karena F5), langsung pakai — tidak
     //  perlu fetch ulang dan tidak reset waktu / jawaban.
     // ══════════════════════════════════════════════════════════════
-    const cachedSoal   = sessionStorage.getItem('examSoalAktif');
-    const cachedOrder  = sessionStorage.getItem('examPilihanOrder');
-    const cachedEndTime = sessionStorage.getItem('examEndTime');
+    const cachedSoal    = sessionStorage.getItem('examSoalAktif')    || localStorage.getItem('examSoalAktif');
+    const cachedOrder   = sessionStorage.getItem('examPilihanOrder') || localStorage.getItem('examPilihanOrder');
+    const cachedEndTime = sessionStorage.getItem('examEndTime')      || localStorage.getItem('examEndTime');
 
     if (cachedSoal && cachedOrder && cachedEndTime) {
       // Sesi masih aktif — muat ulang tanpa fetch
@@ -775,9 +795,11 @@ function selesaiUjian() {
       pilihanOrder[i] = shuffleWithSeed(validPilihan, seed);
     });
 
-    // Simpan soal & urutan pilihan ke sessionStorage agar tahan F5
+    // Simpan soal & urutan pilihan ke sessionStorage DAN localStorage agar tahan F5 / tutup tab
     sessionStorage.setItem('examSoalAktif',    JSON.stringify(soalAktif));
     sessionStorage.setItem('examPilihanOrder', JSON.stringify(pilihanOrder));
+    localStorage.setItem('examSoalAktif',    JSON.stringify(soalAktif));
+    localStorage.setItem('examPilihanOrder', JSON.stringify(pilihanOrder));
 
     // Mulai ujian
     buildNavGrid();

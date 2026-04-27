@@ -156,16 +156,17 @@ body::before {
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycby8QJK2zHTdoQJHXzdUTpPULtojBE96ED_1VvLNMuPx2s6ReOoKVMt6GsKGywBXcLhfwQ/exec";
 
-// ── Baca data hasil dari sessionStorage ──
-const skor       = sessionStorage.getItem('hasilSkor');
-const nilaiAkhir = sessionStorage.getItem('hasilNilai');
-const total      = sessionStorage.getItem('hasilTotal');
-const waktuISO   = sessionStorage.getItem('hasilWaktu');
-const nama       = sessionStorage.getItem('examNama');
-const noWA       = sessionStorage.getItem('examWA');
-const tingkat    = sessionStorage.getItem('examTingkat');
-const kelas      = sessionStorage.getItem('examKelas');
-const mapel      = sessionStorage.getItem('examMapel');
+// ── Baca data hasil dari sessionStorage (fallback: localStorage) ──
+const _get = k => sessionStorage.getItem(k) || localStorage.getItem(k);
+const skor       = _get('hasilSkor');
+const nilaiAkhir = _get('hasilNilai');
+const total      = _get('hasilTotal');
+const waktuISO   = _get('hasilWaktu');
+const nama       = _get('examNama');
+const noWA       = _get('examWA');
+const tingkat    = _get('examTingkat');
+const kelas      = _get('examKelas');
+const mapel      = _get('examMapel');
 const namaUjian  = `${mapel} · ${tingkat} Kelas ${kelas}`;
 
 const page = document.getElementById('result-page');
@@ -257,10 +258,10 @@ function kirimKeWA() {
 }
 
 function ulangiUjian() {
-  // Hapus data hasil saja, data DB soal tetap agar tidak perlu fetch ulang
-  ['hasilSkor','hasilNilai','hasilTotal','hasilWaktu','examJawaban',
-   'examNama','examWA','examTingkat','examKelas','examMapel',
-   'examSoal','examEndTime','examSoalAktif','examPilihanOrder'].forEach(k => sessionStorage.removeItem(k));
+  const keys = ['hasilSkor','hasilNilai','hasilTotal','hasilWaktu','examJawaban',
+    'examNama','examWA','examTingkat','examKelas','examMapel',
+    'examSoal','examEndTime','examSoalAktif','examPilihanOrder'];
+  keys.forEach(k => { sessionStorage.removeItem(k); localStorage.removeItem(k); });
   window.location.href = 'index.html';
 }
 </script>
