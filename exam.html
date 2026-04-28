@@ -253,7 +253,6 @@ body::before {
 </head>
 <body>
 
-<!-- Timeout Overlay -->
 <div id="timeout-overlay">
   <div class="timeout-card">
     <div class="timeout-icon">⏰</div>
@@ -263,7 +262,6 @@ body::before {
   </div>
 </div>
 
-<!-- Topbar -->
 <div class="exam-topbar">
   <div class="exam-student">
     <div class="avatar-ring">🎓</div>
@@ -278,14 +276,11 @@ body::before {
   </div>
 </div>
 
-<!-- Progress Bar -->
 <div class="exam-progress-bar">
   <div class="exam-progress-fill" id="progress-fill" style="width:0%"></div>
 </div>
 
-<!-- Layout Soal -->
 <div class="exam-layout">
-  <!-- Sidebar Navigator -->
   <div class="nav-grid-panel">
     <div class="nav-grid-title" onclick="toggleNavGrid()" style="cursor:pointer;user-select:none;">
       Navigasi Soal
@@ -301,13 +296,11 @@ body::before {
     </div>
   </div>
 
-  <!-- Konten Soal -->
   <div class="exam-body">
     <div id="question-container"></div>
   </div>
 </div>
 
-<!-- Bottom Navigation -->
 <div class="exam-nav">
   <button class="btn-nav btn-prev-nav" id="btn-prev" onclick="prevQuestion()">← Kembali</button>
   <button class="btn-nav btn-next-nav" id="btn-next" onclick="nextQuestion()">Selanjutnya →</button>
@@ -315,34 +308,14 @@ body::before {
 </div>
 
 <script>
-const TOTAL_SECONDS = 3600; // 60 menit
 const LETTERS = ['A','B','C','D','E'];
 
 // ══════════════════════════════════════════════════════════════════
 //  KONFIGURASI SUMBER SOAL — EDIT BAGIAN INI SAJA
-//  Langkah:
-//  1. Buka Google Spreadsheet tingkat yang sesuai
-//  2. File → Share → Publish to web → pilih tab mapel → CSV → copy link
-//  3. Isi SPREADSHEET_ID dan GID tiap tab di bawah ini
-//
-//  Format URL CSV per tab:
-//  https://docs.google.com/spreadsheets/d/e/SPREADSHEET_ID/pub?output=csv&gid=GID_TAB
 // ══════════════════════════════════════════════════════════════════
-
-// ══════════════════════════════════════════════════════════════════
-//  CARA MENDAPATKAN GID TIAP TAB:
-//  1. Buka spreadsheet di browser
-//  2. Klik nama tab (sheet) yang diinginkan
-//  3. Lihat URL → angka setelah "#gid=" adalah GID tab tersebut
-//     Contoh: ...spreadsheets/d/1aBcD.../edit#gid=987654321
-//             → GID = "987654321"
-//  Tab pertama SELALU gid=0
-// ══════════════════════════════════════════════════════════════════
-
 const SOAL_CONFIG = {
 
   // ── SD ──────────────────────────────────────────────────────────
-  // Tab pertama adalah IPAS (gid=0), bukan Matematika
   SD: {
     _id: "2PACX-1vTf1y0JzJnyfI_EKzrfJjRB_PsgOkCzCW4knDBZ7TNg9rcxYxMj5gqaE_ONT5rcAIibmDznxL9X8xIv",
     mapel: {
@@ -370,7 +343,6 @@ const SOAL_CONFIG = {
   },
 
   // ── SMA ─────────────────────────────────────────────────────────
-  // ⚠️  GID tab SMA belum diterima — isi setelah dapat dari spreadsheet
   SMA: {
     _id: "2PACX-1vRXAT5Yz3rtKwFv11E88Qt4WwdZ-frEO50mhWRAiC2bcLJqPgPThnnxI6F1fkSJ5D6jk_k_kgUqOhVK",
     mapel: {
@@ -392,14 +364,21 @@ function resolveCSVUrl(tingkat, mapel) {
   if (!cfg) return null;
   const gid = cfg.mapel[mapel];
   if (gid === undefined) return null;
-  // Gunakan format export (lebih stabil, hindari redirect panjang)
   return `https://docs.google.com/spreadsheets/d/e/${cfg._id}/pub?gid=${gid}&single=true&output=csv`;
 }
 
-// ── Baca parameter dari URL (dikirim oleh index.html) ──
-// Format: exam.html?nama=X&wa=X&tingkat=X&kelas=X&mapel=X
-// Fallback urutan: URL param → sessionStorage → localStorage
+// ── Baca parameter dari URL ──
 const _p      = new URLSearchParams(window.location.search);
+
+// Cek Mode Trial (Coba Gratis)
+const isTrial = _p.get('trial') === 'true';
+
+// Logika Waktu dan Batas Soal:
+// Jika Trial = 15 Menit (900 detik) & 20 Soal. 
+// Jika Normal = 60 Menit (3600 detik) & 40 Soal.
+const TOTAL_SECONDS = isTrial ? 900 : 3600; 
+const BATAS_SOAL    = isTrial ? 20 : 40;
+
 const _nama   = _p.get('nama')    || sessionStorage.getItem('examNama')    || localStorage.getItem('examNama')    || '';
 const _wa     = _p.get('wa')      || sessionStorage.getItem('examWA')      || localStorage.getItem('examWA')      || '';
 const _tingkat= _p.get('tingkat') || sessionStorage.getItem('examTingkat') || localStorage.getItem('examTingkat') || '';
@@ -411,7 +390,7 @@ if (!_nama || !_tingkat || !_kelas || !_mapel) {
   window.location.href = 'index.html';
 }
 
-// Simpan identitas ke sessionStorage DAN localStorage (tahan refresh/tutup tab)
+// Simpan identitas ke sessionStorage DAN localStorage
 ['examNama','examWA','examTingkat','examKelas','examMapel'].forEach(k => {
   const val = {examNama:_nama, examWA:_wa, examTingkat:_tingkat, examKelas:_kelas, examMapel:_mapel}[k];
   sessionStorage.setItem(k, val);
@@ -428,13 +407,13 @@ const namaSiswa = _nama;
 const tingkat   = _tingkat;
 const kelas     = _kelas;
 const mapel     = _mapel;
-const namaUjian = `${mapel} · ${tingkat} Kelas ${kelas}`;
+
+// Jika mode trial aktif, tambahkan label [TRIAL] di nama ujiannya
+const namaUjian = isTrial ? `[TRIAL] ${mapel} · ${tingkat} Kelas ${kelas}` : `${mapel} · ${tingkat} Kelas ${kelas}`;
 
 // Tampilkan identitas di topbar
 document.getElementById('student-name').innerText = namaSiswa;
 document.getElementById('student-subject').innerText = namaUjian;
-
-// ── Fetch soal dijalankan setelah semua fungsi dideklarasikan (lihat bawah) ──
 
 // ── State ──
 let idx = 0;
@@ -444,7 +423,7 @@ let timeoutTriggered = false;
 let timerInterval = null;
 let examEndTime = 0;
 
-// Peringatan saat refresh / tutup tab agar siswa tidak kehilangan sesi
+// Peringatan saat refresh / tutup tab
 window.addEventListener('beforeunload', function(e) {
   if (!examFinished) {
     e.preventDefault();
@@ -452,7 +431,7 @@ window.addEventListener('beforeunload', function(e) {
   }
 });
 
-// Konversi key string (dari JSON) ke number
+// Konversi key string ke number
 const jawabanParsed = {};
 Object.keys(jawabanUser).forEach(k => jawabanParsed[parseInt(k)] = jawabanUser[k]);
 jawabanUser = jawabanParsed;
@@ -527,8 +506,6 @@ function shuffleWithSeed(arr, seed) {
 
 const PRIMES = [104729,224737,350377,479909,611953,746773,882377,1020379,1159523,1299709];
 const pilihanOrder = {};
-// pilihanOrder diisi di dalam initExam() setelah soalAktif terisi
-
 
 // ── Navigator Grid ──
 function buildNavGrid() {
@@ -596,7 +573,6 @@ function selectOption(el, idSoal, nilai) {
   document.querySelectorAll('.opt').forEach(o => o.classList.remove('selected'));
   el.classList.add('selected');
   jawabanUser[idSoal] = nilai;
-  // Simpan jawaban ke sessionStorage & localStorage secara real-time
   sessionStorage.setItem('examJawaban', JSON.stringify(jawabanUser));
   localStorage.setItem('examJawaban', JSON.stringify(jawabanUser));
   updateNavGrid();
@@ -628,16 +604,13 @@ function selesaiUjian() {
   examFinished = true;
   clearInterval(timerInterval);
 
-  // Hapus data sesi dari localStorage (ujian sudah selesai)
   ['examEndTime','examSoalAktif','examPilihanOrder','examJawaban'].forEach(k => localStorage.removeItem(k));
   sessionStorage.removeItem('examEndTime');
 
-  // Hitung skor
   let skor = 0;
   soalAktif.forEach((s, i) => { if (jawabanUser[i] == s.jawaban_benar) skor++; });
   const nilaiAkhir = ((skor / soalAktif.length) * 100).toFixed(2);
 
-  // Simpan hasil ke sessionStorage & localStorage → dibaca oleh result.html
   const hasilData = {
     hasilSkor:  String(skor),
     hasilNilai: nilaiAkhir,
@@ -653,13 +626,10 @@ function selesaiUjian() {
   window.location.href = 'result.html';
 }
 
-// ── Init: fetch soal dulu, baru jalankan ujian ──
-// Diletakkan di BAWAH semua deklarasi fungsi agar tidak ada referensi yang belum siap
+// ── Init ──
 (async function initExam() {
-  // Tampilkan loading di timer sementara soal dimuat
   document.getElementById('timer-display').textContent = 'Memuat...';
 
-  // ── Parser CSV (handle koma di dalam tanda kutip) ──
   function parseCSV(text) {
     const lines = text.trim().split(/\r?\n/);
     if (lines.length < 2) return [];
@@ -684,29 +654,21 @@ function selesaiUjian() {
   }
 
   try {
-    // ══════════════════════════════════════════════════════════════
-    //  RESUME SESSION: Jika soal & urutan pilihan sudah tersimpan
-    //  di sessionStorage (misal karena F5), langsung pakai — tidak
-    //  perlu fetch ulang dan tidak reset waktu / jawaban.
-    // ══════════════════════════════════════════════════════════════
     const cachedSoal    = sessionStorage.getItem('examSoalAktif')    || localStorage.getItem('examSoalAktif');
     const cachedOrder   = sessionStorage.getItem('examPilihanOrder') || localStorage.getItem('examPilihanOrder');
     const cachedEndTime = sessionStorage.getItem('examEndTime')      || localStorage.getItem('examEndTime');
 
     if (cachedSoal && cachedOrder && cachedEndTime) {
-      // Sesi masih aktif — muat ulang tanpa fetch
       soalAktif = JSON.parse(cachedSoal);
       const orderParsed = JSON.parse(cachedOrder);
       Object.keys(orderParsed).forEach(k => { pilihanOrder[parseInt(k)] = orderParsed[k]; });
 
-      // jawabanUser sudah dimuat di atas dari sessionStorage
       buildNavGrid();
       renderSoal();
       startTimer();
-      return; // selesai — skip fetch di bawah
+      return; 
     }
 
-    // ── Sesi baru: resolusi URL berdasarkan tingkat & mapel ──
     const csvUrl = resolveCSVUrl(tingkat, mapel);
 
     if (!csvUrl) {
@@ -715,7 +677,6 @@ function selesaiUjian() {
       return;
     }
 
-    // Cegah akses jika GID belum diisi (masih placeholder)
     if (csvUrl.includes('GID_')) {
       alert(`GID tab "${mapel}" untuk ${tingkat} belum diisi di SOAL_CONFIG.\nBuka exam.html, cari bagian SOAL_CONFIG, dan isi GID yang sesuai.`);
       window.location.href = 'index.html';
@@ -726,11 +687,8 @@ function selesaiUjian() {
     const csvText  = await res.text();
     const rawData  = parseCSV(csvText);
 
-    // ── Normalisasi kolom CSV ──
-    // Tiap tab hanya berisi soal untuk 1 mapel, jadi tidak perlu filter tingkat/mapel
-    // Cukup filter berdasarkan kelas (jika kolom kelas ada), atau ambil semua
     const data = rawData
-      .filter(row => Object.values(row).some(v => v !== ''))  // hapus baris kosong
+      .filter(row => Object.values(row).some(v => v !== '')) 
       .map(row => {
         const pilihan = [
           row['A'] || row['a'] || row['pilihan_a'] || row['Pilihan_A'] || '',
@@ -740,9 +698,6 @@ function selesaiUjian() {
           row['E'] || row['e'] || row['pilihan_e'] || row['Pilihan_E'] || '',
         ].filter(p => p !== '');
 
-        // jawaban_benar: bisa nama kolom berbeda, atau tidak ada sama sekali
-        // Jika tidak ada kolom jawaban_benar (misal sheet Matematika SD),
-        // gunakan pilihan pertama sebagai fallback sementara — admin harus tambahkan kolom ini
         const jawaban_benar =
           row['jawaban_benar'] || row['Jawaban_Benar'] ||
           row['kunci']         || row['Kunci']         ||
@@ -756,52 +711,46 @@ function selesaiUjian() {
         };
       });
 
-    // Filter kelas (jika kolom kelas diisi di spreadsheet; jika kosong, ambil semua soal)
     let filtered = data.filter(s =>
       s.pertanyaan && (!s.kelas || String(s.kelas).trim() === String(kelas).trim())
     );
 
     if (!filtered.length) {
-      // Coba tanpa filter kelas (fallback)
       const tanpaKelas = data.filter(s => s.pertanyaan);
       if (tanpaKelas.length) {
         filtered = tanpaKelas;
         console.warn('Tidak ada soal untuk kelas ' + kelas + ', menggunakan semua soal yang tersedia.');
       } else {
-        alert(`Spreadsheet "${tingkat} — ${mapel}" kosong atau belum diisi soal.\nSilakan tambahkan soal terlebih dahulu.`);
+        alert(`Spreadsheet "${tingkat} — ${mapel}" belum tersedia, silahkan pilih mata pelajaran lain.`);
         window.location.href = 'index.html';
         return;
       }
     }
 
-    // Cek apakah ada kolom jawaban_benar — beri peringatan jika tidak ada
     const tanpaJawaban = filtered.filter(s => !s.jawaban_benar);
     if (tanpaJawaban.length === filtered.length) {
       alert(`Sheet "${mapel}" tidak memiliki kolom "jawaban_benar".\nSoal tetap ditampilkan tapi skor tidak bisa dihitung.\nSilakan tambahkan kolom jawaban_benar di spreadsheet.`);
     }
 
-    // Ambil max 40 soal acak (sesi BARU — jawaban & timer ikut direset)
-    soalAktif = filtered.sort(() => 0.5 - Math.random()).slice(0, 40);
+    // ── Ganti angka 40 dengan BATAS_SOAL sesuai Mode (Trial = 20, Normal = 40) ──
+    soalAktif = filtered.sort(() => 0.5 - Math.random()).slice(0, BATAS_SOAL);
+    
     sessionStorage.removeItem('examEndTime');
     sessionStorage.removeItem('examJawaban');
 
-    // Reset jawaban karena soal baru
     jawabanUser = {};
 
-    // Build pilihan order setelah soalAktif terisi
     soalAktif.forEach((soal, i) => {
       const validPilihan = soal.pilihan.filter(p => p);
       const seed = ((i + 1) * PRIMES[i % PRIMES.length]) >>> 0;
       pilihanOrder[i] = shuffleWithSeed(validPilihan, seed);
     });
 
-    // Simpan soal & urutan pilihan ke sessionStorage DAN localStorage agar tahan F5 / tutup tab
     sessionStorage.setItem('examSoalAktif',    JSON.stringify(soalAktif));
     sessionStorage.setItem('examPilihanOrder', JSON.stringify(pilihanOrder));
     localStorage.setItem('examSoalAktif',    JSON.stringify(soalAktif));
     localStorage.setItem('examPilihanOrder', JSON.stringify(pilihanOrder));
 
-    // Mulai ujian
     buildNavGrid();
     renderSoal();
     startTimer();
