@@ -115,36 +115,22 @@ body::before {
   position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
   color: var(--lo); font-size: 14px; pointer-events: none; transition: color 0.3s;
 }
-input[type="text"], input[type="tel"], input[type="password"] {
+input[type="text"], input[type="tel"], input[type="password"], select.custom-select {
   width: 100%; padding: 14px 14px 14px 40px;
   background: var(--bg); border: 1.5px solid var(--border);
   border-radius: 12px; font-size: 14px;
   font-family: 'Source Sans 3', sans-serif; color: var(--hi);
   transition: border-color 0.25s, box-shadow 0.25s, background 0.4s;
 }
+select.custom-select { padding-left: 14px; appearance: none; cursor: pointer; }
 input::placeholder { color: #a1a1aa; }
-input:focus {
+input:focus, select.custom-select:focus {
   outline: none;
   border-color: rgba(var(--acc-rgb), 0.7);
   box-shadow: 0 0 0 3px rgba(var(--acc-rgb), 0.10);
   background: var(--card);
 }
 .input-wrap:focus-within .input-icon { color: var(--acc); }
-
-/* STYLE KHUSUS DROPDOWN (SELECT) UNTUK TRIAL */
-select.trial-select {
-  width: 100%; padding: 14px 14px 14px 14px;
-  background: var(--bg); border: 1.5px solid var(--border);
-  border-radius: 12px; font-size: 14px;
-  font-family: 'Source Sans 3', sans-serif; color: var(--hi);
-  appearance: none; outline: none; cursor: pointer;
-  transition: border-color 0.25s, box-shadow 0.25s, background 0.4s;
-}
-select.trial-select:focus {
-  border-color: rgba(var(--acc-rgb), 0.7);
-  box-shadow: 0 0 0 3px rgba(var(--acc-rgb), 0.10);
-  background: var(--card);
-}
 
 /* BUTTONS */
 .btn-start {
@@ -157,26 +143,25 @@ select.trial-select:focus {
   box-shadow: 0 4px 20px rgba(var(--acc-rgb), 0.4);
   display: flex; align-items: center; justify-content: center; gap: 10px;
 }
-.btn-start::after {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent);
-  transform: translateX(-100%); transition: transform 0.5s;
-}
-.btn-start:hover::after { transform: translateX(100%); }
-.btn-start:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(var(--acc-rgb), 0.5); }
-.btn-start:disabled { background: #e4e4e7; color: #a1a1aa; cursor: not-allowed; box-shadow: none; transform: none; }
+.btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(var(--acc-rgb), 0.5); }
 
-/* TOMBOL COBA GRATIS */
+/* TOMBOL COBA GRATIS & PREMIUM */
 .btn-trial {
   width: 100%; padding: 14px 20px;
   background: transparent; color: var(--acc);
   border: 1.5px solid rgba(var(--acc-rgb), 0.4);
-  border-radius: 12px; font-size: 14px; font-weight: 700;
-  font-family: 'Source Sans 3', sans-serif;
-  cursor: pointer; margin-top: 12px; transition: all 0.2s;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 12px; transition: all 0.2s;
 }
 .btn-trial:hover { background: var(--acc-light); border-color: var(--acc); transform: translateY(-1px); }
+
+.btn-premium {
+  width: 100%; padding: 14px 20px;
+  background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff;
+  border: none; border-radius: 12px; font-size: 14px; font-weight: 700;
+  cursor: pointer; margin-top: 12px; transition: all 0.2s;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+}
+.btn-premium:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4); }
 
 /* ══ MODAL GLOBAL ══ */
 .modal-overlay {
@@ -186,9 +171,12 @@ select.trial-select:focus {
 }
 .modal-content {
   background: white; padding: 32px; border-radius: 24px;
-  width: 100%; max-width: 480px; box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+  width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
   animation: popUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+.modal-content::-webkit-scrollbar { width: 6px; }
+.modal-content::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 10px; }
 @keyframes popUp {
   from { opacity: 0; transform: scale(0.9) translateY(20px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
@@ -196,8 +184,8 @@ select.trial-select:focus {
 .modal-title { font-family: 'Merriweather', serif; font-size: 24px; color: var(--hi); margin-bottom: 8px; }
 .modal-sub { font-size: 14px; color: var(--lo); margin-bottom: 24px; line-height: 1.5; }
 
-/* Modal Pilihan Ujian (Login) */
-.list-ujian { display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; padding-right: 5px; }
+/* Item Ujian (Login) */
+.list-ujian { display: flex; flex-direction: column; gap: 12px; }
 .ujian-item {
   display: flex; justify-content: space-between; align-items: center;
   padding: 16px 20px; background: var(--bg); border: 1.5px solid var(--border);
@@ -205,19 +193,15 @@ select.trial-select:focus {
 }
 .ujian-item:hover { border-color: var(--acc); background: var(--acc-light); transform: translateX(5px); }
 .ujian-info b { display: block; color: var(--acc); font-size: 16px; margin-bottom: 2px; }
-.ujian-info span { display: block; font-size: 12px; color: var(--hi); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-
+.ujian-info span { display: block; font-size: 12px; color: var(--hi); font-weight: 600; text-transform: uppercase; }
 .ujian-date { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
-.badge-date { font-size: 9px; font-weight: 800; padding: 3px 6px; border-radius: 6px; letter-spacing: 0.05em; }
+.badge-date { font-size: 9px; font-weight: 800; padding: 3px 6px; border-radius: 6px; }
 .badge-date.active { background: var(--success-bg); color: var(--success); }
 .badge-date.expired { background: var(--danger-bg); color: var(--danger); }
 .text-date { font-size: 11px; color: var(--lo); font-weight: 500; }
 .ujian-go { font-weight: 800; color: var(--acc); font-size: 14px; }
-
 .ujian-item.expired { background: #f4f4f5; border-color: #e4e4e7; cursor: not-allowed; opacity: 0.65; }
-.ujian-item.expired:hover { transform: none; border-color: #e4e4e7; background: #f4f4f5; }
-.ujian-item.expired .ujian-info b { color: var(--lo); }
-.ujian-item.expired .ujian-go { color: var(--danger); }
+.ujian-item.expired:hover { transform: none; }
 
 /* ══ LOADING OVERLAY ══ */
 #loading-overlay {
@@ -239,11 +223,9 @@ select.trial-select:focus {
 #global-footer {
   width: 100%; text-align: center; font-size: 11px; color: var(--lo);
   background: rgba(255,255,255,0.88); border-top: 1px solid var(--border);
-  padding: 10px 16px; line-height: 1.4; position: relative; z-index: 1;
+  padding: 10px 16px; position: relative; z-index: 1;
 }
-#global-footer strong { color: var(--acc); font-weight: 600; }
 
-/* ══ RESPONSIVE ══ */
 @media (max-width: 720px) {
   .setup-wrap { flex-direction: column; }
   .panel-left { width: 100%; min-height: 220px; padding: 36px 28px 28px; }
@@ -257,7 +239,7 @@ select.trial-select:focus {
 
 <div id="loading-overlay" class="hidden">
   <div class="spinner"></div>
-  <div class="loading-txt">Memverifikasi Data...</div>
+  <div class="loading-txt">Memproses Data...</div>
 </div>
 
 <div class="setup-wrap">
@@ -284,7 +266,7 @@ select.trial-select:focus {
         <label>No. WhatsApp</label>
         <div class="input-wrap">
           <span class="input-icon">✆</span>
-          <input type="tel" id="userWA" placeholder="Contoh: 08123456789" required inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')">
+          <input type="tel" id="userWA" placeholder="Contoh: 08123456789" required>
         </div>
       </div>
 
@@ -296,14 +278,9 @@ select.trial-select:focus {
         </div>
       </div>
 
-      <button class="btn-start" id="btn-mulai" onclick="loginUjian()">
-        <span>Login & Mulai Ujian</span><span>→</span>
-      </button>
-
-      <button class="btn-trial" type="button" onclick="openTrialModal()">
-        <span>✨ Coba Ujian Gratis</span>
-      </button>
-
+      <button class="btn-start" onclick="loginUjian()">Login & Mulai Ujian →</button>
+      <button class="btn-premium" onclick="openRegisterModal()">⭐ Daftar Premium</button>
+      <button class="btn-trial" onclick="openTrialModal()">✨ Coba Ujian Gratis</button>
     </div>
   </div>
 </div>
@@ -316,35 +293,81 @@ select.trial-select:focus {
   </div>
 </div>
 
+<div id="modal-register" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-title">⭐ Daftar Premium</div>
+    <div class="modal-sub">Isi formulir di bawah ini untuk mengaktifkan akun Premium. Data akan tersimpan dan bisa langsung digunakan untuk login.</div>
+    
+    <div class="field">
+      <label>Nama Lengkap</label>
+      <input type="text" id="reg-nama" placeholder="Masukkan nama kamu...">
+    </div>
+    
+    <div class="field">
+      <label>No WhatsApp (Untuk Login)</label>
+      <input type="tel" id="reg-wa" placeholder="Contoh: 08123456789" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')">
+    </div>
+
+    <div class="field">
+      <label>Buat Password (Untuk Login)</label>
+      <input type="password" id="reg-pass" placeholder="Buat password akun kamu...">
+    </div>
+    
+    <div style="display:flex; gap:10px;">
+      <div class="field" style="flex:1;">
+        <label>Tingkat</label>
+        <select id="reg-tingkat" class="custom-select" onchange="updateRegisterOptions()">
+          <option value="" disabled selected>-- Tingkat --</option>
+          <option value="SD">SD</option>
+          <option value="SMP">SMP</option>
+          <option value="SMA">SMA</option>
+        </select>
+      </div>
+      <div class="field" style="flex:1;">
+        <label>Kelas</label>
+        <select id="reg-kelas" class="custom-select">
+          <option value="" disabled selected>-- Kelas --</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Pilih Mata Pelajaran</label>
+      <select id="reg-mapel" class="custom-select">
+        <option value="" disabled selected>-- Pilih Tingkat Dahulu --</option>
+      </select>
+    </div>
+    
+    <button class="btn-start" style="background: linear-gradient(135deg, #f59e0b, #d97706);" onclick="submitRegister()">
+      Daftar Sekarang →
+    </button>
+  </div>
+</div>
+
 <div id="modal-trial" class="modal-overlay">
   <div class="modal-content">
     <div class="modal-title">Coba Ujian Gratis</div>
-    <div class="modal-sub">Pilih tingkat dan kelas kamu. Mata pelajaran akan dipilih secara <strong>acak</strong> untuk mode ini.</div>
+    <div class="modal-sub">Pilih tingkat dan kelas kamu. Mata pelajaran akan dipilih secara <strong>acak</strong>.</div>
     
     <div class="field">
       <label>Tingkat Pendidikan</label>
-      <select id="trial-tingkat" class="trial-select" onchange="updateTrialKelas()">
+      <select id="trial-tingkat" class="custom-select" onchange="updateTrialKelas()">
         <option value="" disabled selected>-- Pilih Tingkat --</option>
-        <option value="SD">SD (Sekolah Dasar)</option>
-        <option value="SMP">SMP (Sekolah Menengah Pertama)</option>
-        <option value="SMA">SMA (Sekolah Menengah Atas)</option>
+        <option value="SD">SD</option>
+        <option value="SMP">SMP</option>
+        <option value="SMA">SMA</option>
       </select>
     </div>
     
     <div class="field">
       <label>Kelas</label>
-      <select id="trial-kelas" class="trial-select">
+      <select id="trial-kelas" class="custom-select">
         <option value="" disabled selected>-- Pilih Kelas --</option>
       </select>
     </div>
 
-    <div class="field">
-      <label>Mata Pelajaran</label>
-      <input type="text" value="Acak (Sistem akan memilih otomatis)" disabled style="width:100%; padding:14px; border-radius:12px; border:1px solid #d4d4d8; background:#f4f4f5; color:#71717a; font-weight:600; cursor:not-allowed;">
-    </div>
-    
-    <button class="btn-start" style="margin-top:24px; background: linear-gradient(135deg, #16a34a, #15803d);" onclick="startTrial()">
-      Ujicoba Ujian (20 Soal, 15 Menit) Sekarang →
+    <button class="btn-start" style="background: linear-gradient(135deg, #16a34a, #15803d);" onclick="startTrial()">
+      Mulai Uji Coba (15 Menit) →
     </button>
   </div>
 </div>
@@ -357,23 +380,27 @@ select.trial-select:focus {
 const EXAM_BASE_URL = "https://rezaariandes.github.io/sekolah";
 const GAS_LOGIN_URL = "https://script.google.com/macros/s/AKfycbxmpF17RVaVJFmS8Y18DqW2yBU19jgKDBzbH0ZyiJnDuxJQDewaW4hNu5ZpkjhLGM-G/exec";
 
-// ── LOGIKA LOGIN ──
-document.getElementById('userPass').addEventListener('keypress', function(e) {
-  if (e.key === 'Enter') loginUjian();
-});
+// Daftar Mapel Dinamis
+const MAPEL_LIST = {
+  "SD": ["IPAS", "Matematika", "Bahasa Indonesia", "PKn", "Bahasa Inggris"],
+  "SMP": ["Matematika", "Fisika", "Biologi", "Bahasa Indonesia", "Bahasa Inggris", "Sejarah", "Geografi", "Pendidikan Pancasila"],
+  "SMA": ["Pendidikan Agama dan Budi Pekerti", "Pendidikan Pancasila", "Bahasa Indonesia", "Matematika", "Bahasa Inggris", "Sejarah", "Pendidikan Jasmani, Olahraga, dan Kesehatan (PJOK)"]
+};
+
+// ── 1. LOGIKA LOGIN ──
+document.getElementById('userPass').addEventListener('keypress', function(e) { if (e.key === 'Enter') loginUjian(); });
 
 async function loginUjian() {
   const wa = document.getElementById('userWA').value.trim();
   const pass = document.getElementById('userPass').value.trim();
 
-  if (!wa || !pass) {
-    alert("Mohon masukkan No WhatsApp dan Password!"); return;
-  }
+  if (!wa || !pass) { alert("Mohon masukkan No WhatsApp dan Password!"); return; }
 
   document.getElementById('loading-overlay').classList.remove('hidden');
 
   try {
     const formData = new URLSearchParams();
+    formData.append('action', 'login'); // Menandakan bahwa ini adalah request login
     formData.append('wa', wa);
     formData.append('pass', pass);
 
@@ -384,12 +411,10 @@ async function loginUjian() {
       document.getElementById('loading-overlay').classList.add('hidden');
       tampilkanPilihanUjian(res.nama, wa, res.data);
     } else {
-      alert(res.message || "Gagal login. Periksa kembali data kamu.");
+      alert(res.message);
       document.getElementById('loading-overlay').classList.add('hidden');
     }
-
   } catch (error) {
-    console.error("Login Error: ", error);
     alert("Terjadi kesalahan koneksi.");
     document.getElementById('loading-overlay').classList.add('hidden');
   }
@@ -406,6 +431,7 @@ function tampilkanPilihanUjian(nama, wa, daftarUjian) {
     const item = document.createElement('div');
     const isExp = u.isExpired;
     item.className = `ujian-item ${isExp ? 'expired' : ''}`;
+    
     const badgeClass = isExp ? 'expired' : 'active';
     const badgeText  = isExp ? 'EXPIRED' : 'AKTIF';
     const textTgl    = u.expiredStr === 'Tanpa Batas Waktu' ? u.expiredStr : `Batas: ${u.expiredStr}`;
@@ -415,10 +441,7 @@ function tampilkanPilihanUjian(nama, wa, daftarUjian) {
       <div class="ujian-info">
         <b>${u.mapel}</b>
         <span>${u.tingkat} • KELAS ${u.kelas}</span>
-        <div class="ujian-date">
-          <span class="badge-date ${badgeClass}">${badgeText}</span>
-          <span class="text-date">${textTgl}</span>
-        </div>
+        <div class="ujian-date"><span class="badge-date ${badgeClass}">${badgeText}</span><span class="text-date">${textTgl}</span></div>
       </div>
       <div class="ujian-go">${btnText}</div>
     `;
@@ -434,17 +457,80 @@ function tampilkanPilihanUjian(nama, wa, daftarUjian) {
   document.getElementById('modal-ujian').style.display = 'flex';
 }
 
-// ── LOGIKA UJI COBA GRATIS (TRIAL) ──
+// ── 2. LOGIKA REGISTER PREMIUM ──
+function openRegisterModal() {
+  document.getElementById('modal-register').style.display = 'flex';
+}
 
-// Daftar mapel berdasarkan konfigurasi GID sebelumnya
-const MAPEL_LIST = {
-  "SD": ["IPAS", "Matematika", "Bahasa Indonesia", "PKn", "Bahasa Inggris"],
-  "SMP": ["Matematika", "Fisika", "Biologi", "Bahasa Indonesia", "Bahasa Inggris", "Sejarah", "Geografi", "Pendidikan Pancasila"],
-  "SMA": ["Pendidikan Agama dan Budi Pekerti", "Pendidikan Pancasila", "Bahasa Indonesia", "Matematika", "Bahasa Inggris", "Sejarah", "Pendidikan Jasmani, Olahraga, dan Kesehatan (PJOK)"]
-};
+function updateRegisterOptions() {
+  const t = document.getElementById('reg-tingkat').value;
+  const kSelect = document.getElementById('reg-kelas');
+  const mSelect = document.getElementById('reg-mapel');
+  
+  kSelect.innerHTML = '<option value="" disabled selected>-- Kelas --</option>';
+  mSelect.innerHTML = '<option value="" disabled selected>-- Pilih Mapel --</option>';
+  
+  if(!t) return;
 
+  // Isi Dropdown Kelas
+  let start = 1, end = 6; 
+  if (t === 'SMP') { start = 7; end = 9; }
+  else if (t === 'SMA') { start = 10; end = 12; }
+  for (let i = start; i <= end; i++) kSelect.innerHTML += `<option value="${i}">Kelas ${i}</option>`;
+
+  // Isi Dropdown Mapel
+  MAPEL_LIST[t].forEach(mapel => {
+    mSelect.innerHTML += `<option value="${mapel}">${mapel}</option>`;
+  });
+}
+
+async function submitRegister() {
+  const nama = document.getElementById('reg-nama').value.trim();
+  const wa = document.getElementById('reg-wa').value.trim();
+  const pass = document.getElementById('reg-pass').value.trim();
+  const tingkat = document.getElementById('reg-tingkat').value;
+  const kelas = document.getElementById('reg-kelas').value;
+  const mapel = document.getElementById('reg-mapel').value;
+
+  if (!nama || !wa || !pass || !tingkat || !kelas || !mapel) {
+    alert("Harap lengkapi seluruh formulir pendaftaran!"); return;
+  }
+
+  document.getElementById('loading-overlay').classList.remove('hidden');
+
+  try {
+    const formData = new URLSearchParams();
+    formData.append('action', 'register'); // Penanda bahwa ini register
+    formData.append('wa', wa);
+    formData.append('pass', pass);
+    formData.append('nama', nama);
+    formData.append('tingkat', tingkat);
+    formData.append('kelas', kelas);
+    formData.append('mapel', mapel);
+
+    const response = await fetch(GAS_LOGIN_URL, { method: 'POST', body: formData });
+    const res = await response.json();
+
+    document.getElementById('loading-overlay').classList.add('hidden');
+    
+    if (res.status === 'success') {
+      alert(res.message);
+      document.getElementById('modal-register').style.display = 'none';
+      
+      // Auto-fill login form untuk memudahkan
+      document.getElementById('userWA').value = wa;
+      document.getElementById('userPass').value = pass;
+    } else {
+      alert("Gagal: " + res.message);
+    }
+  } catch (error) {
+    alert("Terjadi kesalahan koneksi.");
+    document.getElementById('loading-overlay').classList.add('hidden');
+  }
+}
+
+// ── 3. LOGIKA UJI COBA GRATIS (TRIAL) ──
 function openTrialModal() {
-  // Reset form sebelum dibuka
   document.getElementById('trial-tingkat').value = "";
   document.getElementById('trial-kelas').innerHTML = '<option value="" disabled selected>-- Pilih Kelas --</option>';
   document.getElementById('modal-trial').style.display = 'flex';
@@ -453,51 +539,30 @@ function openTrialModal() {
 function updateTrialKelas() {
   const tingkat = document.getElementById('trial-tingkat').value;
   const kelasSelect = document.getElementById('trial-kelas');
-  
   kelasSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kelas --</option>';
   
-  let start = 1, end = 6; // Default SD
+  let start = 1, end = 6; 
   if (tingkat === 'SMP') { start = 7; end = 9; }
   else if (tingkat === 'SMA') { start = 10; end = 12; }
-  
-  for (let i = start; i <= end; i++) {
-    kelasSelect.innerHTML += `<option value="${i}">Kelas ${i}</option>`;
-  }
+  for (let i = start; i <= end; i++) kelasSelect.innerHTML += `<option value="${i}">Kelas ${i}</option>`;
 }
 
 function startTrial() {
   const t = document.getElementById('trial-tingkat').value;
   const k = document.getElementById('trial-kelas').value;
+  if (!t || !k) { alert("Pilih Tingkat dan Kelas!"); return; }
   
-  if (!t || !k) { 
-    alert("Harap pilih Tingkat dan Kelas terlebih dahulu!"); 
-    return; 
-  }
-  
-  // Pilih mapel secara acak
   const mapels = MAPEL_LIST[t];
   const randomMapel = mapels[Math.floor(Math.random() * mapels.length)];
-  
-  // Buat URL parameter dengan tambahan parameter "&trial=true"
-  const params = new URLSearchParams({
-    nama: "Peserta Trial",
-    wa: "0000000000",
-    tingkat: t,
-    kelas: k,
-    mapel: randomMapel,
-    trial: "true"  // Ini parameter kunci untuk dibaca oleh exam.html
-  });
-  
-  // Redirect ke halaman ujian
+  const params = new URLSearchParams({ nama: "Trial", wa: "00000", tingkat: t, kelas: k, mapel: randomMapel, trial: "true" });
   window.location.href = `${EXAM_BASE_URL}/exam.html?${params.toString()}`;
 }
 
-// ── TUTUP MODAL JIKA KLIK DI LUAR KOTAK ──
+// ── TUTUP MODAL GLOBAL ──
 window.onclick = function(event) {
-  const modalUjian = document.getElementById('modal-ujian');
-  const modalTrial = document.getElementById('modal-trial');
-  if (event.target == modalUjian) modalUjian.style.display = "none";
-  if (event.target == modalTrial) modalTrial.style.display = "none";
+  if (event.target.classList.contains('modal-overlay')) {
+    event.target.style.display = "none";
+  }
 }
 </script>
 </body>
