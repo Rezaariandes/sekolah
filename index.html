@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KlikCBT — Ujian Online</title>
+<title>Klikpro CBT - Latihan Soal Terbaik dan Terakurat</title>
 <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;0,900;1,400&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ══ ROOT & THEMES ══ */
@@ -19,9 +19,6 @@
   --shadow: 0 4px 24px rgba(79,70,229,0.10);
   --radius: 16px; --nav-h: 68px;
 }
-body.theme-SD  { --acc: #e11d48; --acc2: #be123c; --acc-rgb: 225,29,72;  --acc-light: #ffe4e6; }
-body.theme-SMP { --acc: #0284c7; --acc2: #0369a1; --acc-rgb: 2,132,199;  --acc-light: #e0f2fe; }
-body.theme-SMA { --acc: #7c3aed; --acc2: #6d28d9; --acc-rgb: 124,58,237; --acc-light: #ede9fe; }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -99,7 +96,7 @@ body::before {
   padding: 56px 52px 72px; background: var(--card);
 }
 
-.form-card { width: 100%; max-width: 400px; animation: slideIn 0.5s cubic-bezier(0.22,1,0.36,1) both; }
+.form-card { width: 100%; max-width: 380px; animation: slideIn 0.5s cubic-bezier(0.22,1,0.36,1) both; }
 @keyframes slideIn {
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -108,7 +105,7 @@ body::before {
 .form-title { font-family: 'Merriweather', serif; font-size: 26px; font-weight: 800; color: var(--hi); margin-bottom: 5px; }
 .form-sub   { font-size: 13px; color: var(--lo); margin-bottom: 34px; }
 
-.field { margin-bottom: 16px; }
+.field { margin-bottom: 20px; }
 .field label {
   display: block; font-size: 11px; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--lo); margin-bottom: 7px;
@@ -118,32 +115,40 @@ body::before {
   position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
   color: var(--lo); font-size: 14px; pointer-events: none; transition: color 0.3s;
 }
-input[type="text"], input[type="tel"], select {
-  width: 100%; padding: 12px 14px 12px 40px;
+input[type="text"], input[type="tel"], input[type="password"] {
+  width: 100%; padding: 14px 14px 14px 40px;
   background: var(--bg); border: 1.5px solid var(--border);
   border-radius: 12px; font-size: 14px;
   font-family: 'Source Sans 3', sans-serif; color: var(--hi);
   transition: border-color 0.25s, box-shadow 0.25s, background 0.4s;
-  appearance: none;
 }
-input[type="text"]::placeholder, input[type="tel"]::placeholder { color: #a1a1aa; }
-input[type="text"]:focus, input[type="tel"]:focus, select:focus {
+input::placeholder { color: #a1a1aa; }
+input:focus {
   outline: none;
   border-color: rgba(var(--acc-rgb), 0.7);
   box-shadow: 0 0 0 3px rgba(var(--acc-rgb), 0.10);
   background: var(--card);
 }
 .input-wrap:focus-within .input-icon { color: var(--acc); }
-select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: right 14px center; cursor: pointer;
+
+/* STYLE KHUSUS DROPDOWN (SELECT) UNTUK TRIAL */
+select.trial-select {
+  width: 100%; padding: 14px 14px 14px 14px;
+  background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: 12px; font-size: 14px;
+  font-family: 'Source Sans 3', sans-serif; color: var(--hi);
+  appearance: none; outline: none; cursor: pointer;
+  transition: border-color 0.25s, box-shadow 0.25s, background 0.4s;
 }
-select option { background: #fff; color: #18181b; }
+select.trial-select:focus {
+  border-color: rgba(var(--acc-rgb), 0.7);
+  box-shadow: 0 0 0 3px rgba(var(--acc-rgb), 0.10);
+  background: var(--card);
+}
 
-.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-
+/* BUTTONS */
 .btn-start {
-  width: 100%; padding: 14px 20px;
+  width: 100%; padding: 15px 20px;
   background: linear-gradient(135deg, var(--acc), var(--acc2));
   color: #fff; border: none; border-radius: 12px;
   font-size: 15px; font-weight: 700; font-family: 'Source Sans 3', sans-serif;
@@ -161,11 +166,65 @@ select option { background: #fff; color: #18181b; }
 .btn-start:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(var(--acc-rgb), 0.5); }
 .btn-start:disabled { background: #e4e4e7; color: #a1a1aa; cursor: not-allowed; box-shadow: none; transform: none; }
 
+/* TOMBOL COBA GRATIS */
+.btn-trial {
+  width: 100%; padding: 14px 20px;
+  background: transparent; color: var(--acc);
+  border: 1.5px solid rgba(var(--acc-rgb), 0.4);
+  border-radius: 12px; font-size: 14px; font-weight: 700;
+  font-family: 'Source Sans 3', sans-serif;
+  cursor: pointer; margin-top: 12px; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-trial:hover { background: var(--acc-light); border-color: var(--acc); transform: translateY(-1px); }
+
+/* ══ MODAL GLOBAL ══ */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px); z-index: 200; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-content {
+  background: white; padding: 32px; border-radius: 24px;
+  width: 100%; max-width: 480px; box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+  animation: popUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes popUp {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-title { font-family: 'Merriweather', serif; font-size: 24px; color: var(--hi); margin-bottom: 8px; }
+.modal-sub { font-size: 14px; color: var(--lo); margin-bottom: 24px; line-height: 1.5; }
+
+/* Modal Pilihan Ujian (Login) */
+.list-ujian { display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; padding-right: 5px; }
+.ujian-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 20px; background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: 16px; cursor: pointer; transition: all 0.2s;
+}
+.ujian-item:hover { border-color: var(--acc); background: var(--acc-light); transform: translateX(5px); }
+.ujian-info b { display: block; color: var(--acc); font-size: 16px; margin-bottom: 2px; }
+.ujian-info span { display: block; font-size: 12px; color: var(--hi); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+
+.ujian-date { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.badge-date { font-size: 9px; font-weight: 800; padding: 3px 6px; border-radius: 6px; letter-spacing: 0.05em; }
+.badge-date.active { background: var(--success-bg); color: var(--success); }
+.badge-date.expired { background: var(--danger-bg); color: var(--danger); }
+.text-date { font-size: 11px; color: var(--lo); font-weight: 500; }
+.ujian-go { font-weight: 800; color: var(--acc); font-size: 14px; }
+
+.ujian-item.expired { background: #f4f4f5; border-color: #e4e4e7; cursor: not-allowed; opacity: 0.65; }
+.ujian-item.expired:hover { transform: none; border-color: #e4e4e7; background: #f4f4f5; }
+.ujian-item.expired .ujian-info b { color: var(--lo); }
+.ujian-item.expired .ujian-go { color: var(--danger); }
+
 /* ══ LOADING OVERLAY ══ */
 #loading-overlay {
-  position: fixed; inset: 0; background: var(--bg);
+  position: fixed; inset: 0; background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(5px);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  z-index: 100; transition: opacity 0.4s;
+  z-index: 300; transition: opacity 0.4s;
 }
 #loading-overlay.hidden { opacity: 0; pointer-events: none; }
 .spinner {
@@ -174,7 +233,7 @@ select option { background: #fff; color: #18181b; }
   animation: spin 0.8s linear infinite; margin-bottom: 16px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.loading-txt { font-size: 14px; color: var(--lo); font-weight: 500; }
+.loading-txt { font-size: 14px; color: var(--hi); font-weight: 600; }
 
 /* ══ FOOTER ══ */
 #global-footer {
@@ -190,20 +249,18 @@ select option { background: #fff; color: #18181b; }
   .panel-left { width: 100%; min-height: 220px; padding: 36px 28px 28px; }
   .panel-headline h1 { font-size: 48px; }
   .panel-headline p { display: none; }
-  .panel-right { padding: 28px 20px 36px; }
+  .panel-right { padding: 36px 20px 48px; }
 }
 </style>
 </head>
 <body>
 
-<!-- Loading Overlay -->
 <div id="loading-overlay" class="hidden">
   <div class="spinner"></div>
-  <div class="loading-txt">Memuat...</div>
+  <div class="loading-txt">Memverifikasi Data...</div>
 </div>
 
 <div class="setup-wrap">
-  <!-- Panel Kiri -->
   <div class="panel-left">
     <div class="panel-grid"></div>
     <div class="brand-tag"><div class="brand-dot"></div>Ujian Online</div>
@@ -214,143 +271,233 @@ select option { background: #fff; color: #18181b; }
     <div class="stat-row">
       <div class="stat-item"><div class="stat-num">60</div><div class="stat-label">Menit</div></div>
       <div class="stat-item"><div class="stat-num">40</div><div class="stat-label">Soal</div></div>
-      <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">Mapel</div></div>
+      <div class="stat-item"><div class="stat-num">AI</div><div class="stat-label">Terpadu</div></div>
     </div>
   </div>
 
-  <!-- Panel Kanan (Form) -->
   <div class="panel-right">
     <div class="form-card">
-      <div class="form-title">Daftar Ujian</div>
-      <div class="form-sub">Lengkapi identitas kamu untuk melanjutkan</div>
+      <div class="form-title">Login Peserta</div>
+      <div class="form-sub">Masukkan kredensial kamu untuk memulai ujian</div>
 
-      <div class="field-row">
-        <div class="field">
-          <label>Nama Lengkap</label>
-          <div class="input-wrap">
-            <span class="input-icon">✦</span>
-            <input type="text" id="userName" placeholder="Nama kamu..." required>
-          </div>
-        </div>
-        <div class="field">
-          <label>No. WhatsApp</label>
-          <div class="input-wrap">
-            <span class="input-icon">✆</span>
-            <input type="tel" id="userWA" placeholder="08xx..." required inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')">
-          </div>
-        </div>
-      </div>
-
-      <div class="field-row">
-        <div class="field">
-          <label>Tingkat</label>
-          <div class="input-wrap">
-            <span class="input-icon">◈</span>
-            <select id="tingkat" onchange="updateKelasPilihan()">
-              <option value="">— Pilih —</option>
-              <option value="SD">SD</option>
-              <option value="SMP">SMP</option>
-              <option value="SMA">SMA</option>
-            </select>
-          </div>
-        </div>
-        <div class="field">
-          <label>Kelas</label>
-          <div class="input-wrap">
-            <span class="input-icon">◉</span>
-            <select id="kelas"><option value="">— Pilih Tingkat —</option></select>
-          </div>
+      <div class="field">
+        <label>No. WhatsApp</label>
+        <div class="input-wrap">
+          <span class="input-icon">✆</span>
+          <input type="tel" id="userWA" placeholder="Contoh: 08123456789" required inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')">
         </div>
       </div>
 
       <div class="field">
-        <label>Mata Pelajaran</label>
+        <label>Password</label>
         <div class="input-wrap">
-          <span class="input-icon">⬡</span>
-          <select id="mapel"><option value="">— Pilih Tingkat dulu —</option></select>
+          <span class="input-icon">🔑</span>
+          <input type="password" id="userPass" placeholder="Masukkan password..." required>
         </div>
       </div>
 
-      <button class="btn-start" id="btn-mulai" onclick="mulaiUjian()" disabled>
-        <span>Mulai Ujian</span><span>→</span>
+      <button class="btn-start" id="btn-mulai" onclick="loginUjian()">
+        <span>Login & Mulai Ujian</span><span>→</span>
       </button>
+
+      <button class="btn-trial" type="button" onclick="openTrialModal()">
+        <span>✨ Coba Ujian Gratis</span>
+      </button>
+
     </div>
   </div>
 </div>
 
-<!-- Footer -->
+<div id="modal-ujian" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-title">Pilih Ujian</div>
+    <div class="modal-sub">Halo <strong id="span-nama"></strong>, silakan pilih mata pelajaran yang ingin kamu kerjakan hari ini:</div>
+    <div class="list-ujian" id="list-ujian"></div>
+  </div>
+</div>
+
+<div id="modal-trial" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-title">Coba Ujian Gratis</div>
+    <div class="modal-sub">Pilih tingkat dan kelas kamu. Mata pelajaran akan dipilih secara <strong>acak</strong> untuk mode ini.</div>
+    
+    <div class="field">
+      <label>Tingkat Pendidikan</label>
+      <select id="trial-tingkat" class="trial-select" onchange="updateTrialKelas()">
+        <option value="" disabled selected>-- Pilih Tingkat --</option>
+        <option value="SD">SD (Sekolah Dasar)</option>
+        <option value="SMP">SMP (Sekolah Menengah Pertama)</option>
+        <option value="SMA">SMA (Sekolah Menengah Atas)</option>
+      </select>
+    </div>
+    
+    <div class="field">
+      <label>Kelas</label>
+      <select id="trial-kelas" class="trial-select">
+        <option value="" disabled selected>-- Pilih Kelas --</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Mata Pelajaran</label>
+      <input type="text" value="Acak (Sistem akan memilih otomatis)" disabled style="width:100%; padding:14px; border-radius:12px; border:1px solid #d4d4d8; background:#f4f4f5; color:#71717a; font-weight:600; cursor:not-allowed;">
+    </div>
+    
+    <button class="btn-start" style="margin-top:24px; background: linear-gradient(135deg, #16a34a, #15803d);" onclick="startTrial()">
+      Ujicoba Ujian (20 Soal, 15 Menit) Sekarang →
+    </button>
+  </div>
+</div>
+
 <div id="global-footer">
-  &copy; 2026 <strong>dr. Reza Ariandes Sahputra</strong> &nbsp;&mdash;&nbsp; Ujian Online &mdash; Hak cipta dilindungi undang-undang
+  &copy; 2026 <strong>dr. Reza Ariandes Sahputra</strong> &nbsp;&mdash;&nbsp; Klikpro CBT &mdash; Hak cipta dilindungi undang-undang
 </div>
 
 <script>
-// ════════════════════════════════════════════════
-//  KONFIGURASI — sesuaikan baris ini saja
-// ════════════════════════════════════════════════
-const EXAM_BASE_URL = "https://rezaariandes.github.io/sekolah"; // tanpa slash di akhir
-// ════════════════════════════════════════════════
+const EXAM_BASE_URL = "https://rezaariandes.github.io/sekolah";
+const GAS_LOGIN_URL = "https://script.google.com/macros/s/AKfycbxmpF17RVaVJFmS8Y18DqW2yBU19jgKDBzbH0ZyiJnDuxJQDewaW4hNu5ZpkjhLGM-G/exec";
 
-// ── Daftar mapel per tingkat (harus sama persis dengan SOAL_CONFIG di exam.html) ──
-const MAPEL_PER_TINGKAT = {
-  SD:  ["IPAS", "Matematika", "Bahasa Indonesia", "PKn", "Bahasa Inggris"],
-  SMP: ["Matematika", "Fisika", "Biologi", "Bahasa Indonesia", "Bahasa Inggris",
-        "Sejarah", "Geografi", "Pendidikan Pancasila"],
-  SMA: ["Pendidikan Agama dan Budi Pekerti", "Pendidikan Pancasila",
-        "Bahasa Indonesia", "Matematika", "Bahasa Inggris", "Sejarah",
-        "Pendidikan Jasmani, Olahraga, dan Kesehatan (PJOK)"],
-};
-
-['userName','userWA','tingkat','kelas','mapel'].forEach(id => {
-  document.getElementById(id).addEventListener('change', cekFormLengkap);
-  document.getElementById(id).addEventListener('input',  cekFormLengkap);
+// ── LOGIKA LOGIN ──
+document.getElementById('userPass').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') loginUjian();
 });
 
-function cekFormLengkap() {
-  const ok = document.getElementById('userName').value.trim() &&
-             document.getElementById('userWA').value.trim() &&
-             document.getElementById('tingkat').value &&
-             document.getElementById('kelas').value &&
-             document.getElementById('mapel').value;
-  document.getElementById('btn-mulai').disabled = !ok;
-}
+async function loginUjian() {
+  const wa = document.getElementById('userWA').value.trim();
+  const pass = document.getElementById('userPass').value.trim();
 
-function updateKelasPilihan() {
-  const t = document.getElementById('tingkat').value;
-
-  // Update dropdown Kelas
-  const ks = document.getElementById('kelas');
-  ks.innerHTML = '<option value="">— Pilih Kelas —</option>';
-  ({ SD:[1,2,3,4,5,6], SMP:[7,8,9], SMA:[10,11,12] }[t] || []).forEach(k =>
-    ks.innerHTML += `<option value="${k}">Kelas ${k}</option>`);
-
-  // Update dropdown Mapel sesuai tingkat
-  const mp = document.getElementById('mapel');
-  mp.innerHTML = '<option value="">— Pilih Mapel —</option>';
-  (MAPEL_PER_TINGKAT[t] || []).forEach(m =>
-    mp.innerHTML += `<option value="${m}">${m}</option>`);
-
-  // Terapkan tema warna
-  document.body.classList.remove('theme-SD','theme-SMP','theme-SMA');
-  if (t) document.body.classList.add('theme-' + t);
-
-  cekFormLengkap();
-}
-
-function mulaiUjian() {
-  const nama    = document.getElementById('userName').value.trim();
-  const noWA    = document.getElementById('userWA').value.trim();
-  const tingkat = document.getElementById('tingkat').value;
-  const kelas   = document.getElementById('kelas').value;
-  const mapel   = document.getElementById('mapel').value;
-
-  if (!nama || !noWA || !tingkat || !kelas || !mapel) {
-    alert("Mohon lengkapi semua data!"); return;
+  if (!wa || !pass) {
+    alert("Mohon masukkan No WhatsApp dan Password!"); return;
   }
 
-  // Redirect ke URL asli dengan query parameter
-  // exam.html membaca: _p.get('nama'), _p.get('wa'), _p.get('tingkat'), dst.
-  const params = new URLSearchParams({ nama, wa: noWA, tingkat, kelas, mapel });
+  document.getElementById('loading-overlay').classList.remove('hidden');
+
+  try {
+    const formData = new URLSearchParams();
+    formData.append('wa', wa);
+    formData.append('pass', pass);
+
+    const response = await fetch(GAS_LOGIN_URL, { method: 'POST', body: formData });
+    const res = await response.json();
+
+    if (res.status === 'success') {
+      document.getElementById('loading-overlay').classList.add('hidden');
+      tampilkanPilihanUjian(res.nama, wa, res.data);
+    } else {
+      alert(res.message || "Gagal login. Periksa kembali data kamu.");
+      document.getElementById('loading-overlay').classList.add('hidden');
+    }
+
+  } catch (error) {
+    console.error("Login Error: ", error);
+    alert("Terjadi kesalahan koneksi.");
+    document.getElementById('loading-overlay').classList.add('hidden');
+  }
+}
+
+function tampilkanPilihanUjian(nama, wa, daftarUjian) {
+  document.getElementById('span-nama').innerText = nama;
+  const container = document.getElementById('list-ujian');
+  container.innerHTML = ''; 
+
+  daftarUjian.sort((a, b) => b.expiredTs - a.expiredTs);
+
+  daftarUjian.forEach(u => {
+    const item = document.createElement('div');
+    const isExp = u.isExpired;
+    item.className = `ujian-item ${isExp ? 'expired' : ''}`;
+    const badgeClass = isExp ? 'expired' : 'active';
+    const badgeText  = isExp ? 'EXPIRED' : 'AKTIF';
+    const textTgl    = u.expiredStr === 'Tanpa Batas Waktu' ? u.expiredStr : `Batas: ${u.expiredStr}`;
+    const btnText    = isExp ? 'DITUTUP' : 'MULAI →';
+
+    item.innerHTML = `
+      <div class="ujian-info">
+        <b>${u.mapel}</b>
+        <span>${u.tingkat} • KELAS ${u.kelas}</span>
+        <div class="ujian-date">
+          <span class="badge-date ${badgeClass}">${badgeText}</span>
+          <span class="text-date">${textTgl}</span>
+        </div>
+      </div>
+      <div class="ujian-go">${btnText}</div>
+    `;
+    
+    if (!isExp) {
+      item.onclick = () => {
+        const params = new URLSearchParams({ nama: nama, wa: wa, tingkat: u.tingkat, kelas: u.kelas, mapel: u.mapel });
+        window.location.href = `${EXAM_BASE_URL}/exam.html?${params.toString()}`;
+      };
+    }
+    container.appendChild(item);
+  });
+  document.getElementById('modal-ujian').style.display = 'flex';
+}
+
+// ── LOGIKA UJI COBA GRATIS (TRIAL) ──
+
+// Daftar mapel berdasarkan konfigurasi GID sebelumnya
+const MAPEL_LIST = {
+  "SD": ["IPAS", "Matematika", "Bahasa Indonesia", "PKn", "Bahasa Inggris"],
+  "SMP": ["Matematika", "Fisika", "Biologi", "Bahasa Indonesia", "Bahasa Inggris", "Sejarah", "Geografi", "Pendidikan Pancasila"],
+  "SMA": ["Pendidikan Agama dan Budi Pekerti", "Pendidikan Pancasila", "Bahasa Indonesia", "Matematika", "Bahasa Inggris", "Sejarah", "Pendidikan Jasmani, Olahraga, dan Kesehatan (PJOK)"]
+};
+
+function openTrialModal() {
+  // Reset form sebelum dibuka
+  document.getElementById('trial-tingkat').value = "";
+  document.getElementById('trial-kelas').innerHTML = '<option value="" disabled selected>-- Pilih Kelas --</option>';
+  document.getElementById('modal-trial').style.display = 'flex';
+}
+
+function updateTrialKelas() {
+  const tingkat = document.getElementById('trial-tingkat').value;
+  const kelasSelect = document.getElementById('trial-kelas');
+  
+  kelasSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kelas --</option>';
+  
+  let start = 1, end = 6; // Default SD
+  if (tingkat === 'SMP') { start = 7; end = 9; }
+  else if (tingkat === 'SMA') { start = 10; end = 12; }
+  
+  for (let i = start; i <= end; i++) {
+    kelasSelect.innerHTML += `<option value="${i}">Kelas ${i}</option>`;
+  }
+}
+
+function startTrial() {
+  const t = document.getElementById('trial-tingkat').value;
+  const k = document.getElementById('trial-kelas').value;
+  
+  if (!t || !k) { 
+    alert("Harap pilih Tingkat dan Kelas terlebih dahulu!"); 
+    return; 
+  }
+  
+  // Pilih mapel secara acak
+  const mapels = MAPEL_LIST[t];
+  const randomMapel = mapels[Math.floor(Math.random() * mapels.length)];
+  
+  // Buat URL parameter dengan tambahan parameter "&trial=true"
+  const params = new URLSearchParams({
+    nama: "Peserta Trial",
+    wa: "0000000000",
+    tingkat: t,
+    kelas: k,
+    mapel: randomMapel,
+    trial: "true"  // Ini parameter kunci untuk dibaca oleh exam.html
+  });
+  
+  // Redirect ke halaman ujian
   window.location.href = `${EXAM_BASE_URL}/exam.html?${params.toString()}`;
+}
+
+// ── TUTUP MODAL JIKA KLIK DI LUAR KOTAK ──
+window.onclick = function(event) {
+  const modalUjian = document.getElementById('modal-ujian');
+  const modalTrial = document.getElementById('modal-trial');
+  if (event.target == modalUjian) modalUjian.style.display = "none";
+  if (event.target == modalTrial) modalTrial.style.display = "none";
 }
 </script>
 </body>
