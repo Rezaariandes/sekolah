@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ujian Online — Hasil</title>
+<title>Ujian Online — Hasil & Evaluasi</title>
 <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;0,900;1,400&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ══ ROOT & THEMES ══ */
@@ -42,12 +42,12 @@ body::before {
 /* ══ RESULT LAYOUT ══ */
 .result-page {
   flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
+  align-items: center; justify-content: flex-start;
   padding: 40px 24px; position: relative; z-index: 1;
 }
 
 .result-wrap {
-  width: 100%; max-width: 560px;
+  width: 100%; max-width: 600px;
   animation: popIn 0.55s cubic-bezier(0.22,1,0.36,1) both;
 }
 @keyframes popIn {
@@ -96,6 +96,35 @@ body::before {
 .info-card-val { font-size: 15px; font-weight: 700; color: var(--hi); }
 
 .save-pill { text-align: center; font-size: 12px; color: var(--lo); padding: 10px; margin-bottom: 12px; }
+
+/* ══ REVIEW SOAL (EVALUASI) ══ */
+.review-section {
+  margin-top: 30px; margin-bottom: 20px;
+}
+.review-title {
+  font-family: 'Merriweather', serif; font-size: 20px; font-weight: 800; 
+  color: var(--hi); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+}
+.review-card {
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 16px; padding: 20px; margin-bottom: 12px; box-shadow: var(--shadow);
+}
+.review-card.benar { border-left: 6px solid var(--success); }
+.review-card.salah { border-left: 6px solid var(--danger); }
+.review-q-num {
+  font-size: 12px; font-weight: 700; color: var(--lo); margin-bottom: 8px;
+  text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between;
+}
+.badge-status { padding: 4px 8px; border-radius: 6px; font-size: 10px; color: #fff; }
+.badge-status.benar { background: var(--success); }
+.badge-status.salah { background: var(--danger); }
+.review-q-text { font-size: 15px; font-weight: 600; color: var(--hi); margin-bottom: 16px; line-height: 1.6; }
+.review-ans-box {
+  background: var(--bg); padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 8px;
+}
+.review-ans-box strong { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+.user-ans { color: var(--danger); font-weight: 600; }
+.correct-ans { color: var(--success); font-weight: 600; }
 
 /* ══ BUTTONS ══ */
 .btn-wa-big {
@@ -154,6 +183,7 @@ body::before {
 </div>
 
 <script>
+// URL App Script Bapak
 const API_URL = "https://script.google.com/macros/s/AKfycby8QJK2zHTdoQJHXzdUTpPULtojBE96ED_1VvLNMuPx2s6ReOoKVMt6GsKGywBXcLhfwQ/exec";
 
 // ── Baca data hasil dari sessionStorage (fallback: localStorage) ──
@@ -167,7 +197,14 @@ const noWA       = _get('examWA');
 const tingkat    = _get('examTingkat');
 const kelas      = _get('examKelas');
 const mapel      = _get('examMapel');
-const namaUjian  = `${mapel} · ${tingkat} Kelas ${kelas}`;
+
+// Ambil data soal dan jawaban untuk fitur review
+const soalAktifJSON = _get('examSoalAktif');
+const jawabanUserJSON = _get('examJawaban');
+
+// Jika statusnya Trial, tambahkan label [TRIAL]
+const isTrial = window.location.search.includes('trial=true') || (nama === 'Trial' && noWA === '00000');
+const namaUjian  = isTrial ? `[TRIAL] ${mapel} · ${tingkat} Kelas ${kelas}` : `${mapel} · ${tingkat} Kelas ${kelas}`;
 
 const page = document.getElementById('result-page');
 
@@ -195,6 +232,43 @@ if (!skor || !nama) {
     n >= 70 ? 'BAGUS SEKALI! 👏' :
     n >= 60 ? 'CUKUP BAIK 👍' : 'TETAP SEMANGAT! 📚';
 
+  // ── GENERATE REVIEW SOAL (Hanya Benar/Salah) ──
+  let reviewHTML = "";
+  if (soalAktifJSON && jawabanUserJSON) {
+    try {
+      const soalList = JSON.parse(soalAktifJSON);
+      const userAns = JSON.parse(jawabanUserJSON);
+      
+      reviewHTML += `<div class="review-section">
+        <div class="review-title">📝 Evaluasi Jawaban</div>`;
+
+      soalList.forEach((soal, index) => {
+        const jawabanSiswa = userAns[index] || "Tidak dijawab";
+        const jawabanBenar = soal.jawaban_benar;
+        const isBenar = (jawabanSiswa === jawabanBenar);
+        
+        reviewHTML += `
+          <div class="review-card ${isBenar ? 'benar' : 'salah'}">
+            <div class="review-q-num">
+              Soal No. ${index + 1}
+              <span class="badge-status ${isBenar ? 'benar' : 'salah'}">${isBenar ? 'BENAR' : 'SALAH'}</span>
+            </div>
+            <div class="review-q-text">${soal.pertanyaan}</div>
+            
+            <div class="review-ans-box">
+              <strong>Jawaban Kamu:</strong>
+              <span class="${isBenar ? 'correct-ans' : 'user-ans'}">${jawabanSiswa}</span>
+            </div>
+          </div>
+        `;
+      });
+      
+      reviewHTML += `</div>`;
+    } catch (e) {
+      console.error("Gagal memuat review:", e);
+    }
+  }
+
   page.innerHTML = `
     <div class="result-wrap">
       <div class="score-hero">
@@ -219,21 +293,29 @@ if (!skor || !nama) {
         <svg viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm.029 18.88c-1.161 0-2.305-.292-3.318-.844l-3.677.964.984-3.595c-.607-1.052-.927-2.246-.926-3.468.001-3.825 3.113-6.937 6.937-6.937 3.825 0 6.938 3.112 6.938 6.937 0 3.824-3.113 6.938-6.938 6.938z"/></svg>
         Kirim Hasil ke WhatsApp
       </button>
-      <button class="btn-retry-link" onclick="ulangiUjian()">↺ Ulangi Ujian</button>
+      <button class="btn-retry-link" onclick="ulangiUjian()">↺ Selesai & Kembali ke Awal</button>
+
+      <!-- Tempat memunculkan Evaluasi Jawaban -->
+      ${reviewHTML}
+
     </div>
   `;
 
   // Animasi angka naik
   animateScore(n);
 
-  // Kirim data ke Google Sheets
-  const data = { nama, noWA, tingkat, kelas, mapel, skor: parseInt(skor), nilaiAkhir };
-  fetch(API_URL, { method: 'POST', body: JSON.stringify(data) })
-    .then(r => r.json())
-    .then(() => document.getElementById('save-status').innerHTML =
-      `<span style="color:#16a34a">✔ Data berhasil disimpan ke server</span>`)
-    .catch(() => document.getElementById('save-status').innerHTML =
-      `<span style="color:#dc2626">✖ Gagal menyimpan ke server</span>`);
+  // Kirim data ke Google Sheets HANYA jika bukan Trial
+  if (!isTrial) {
+    const data = { nama, noWA, tingkat, kelas, mapel, skor: parseInt(skor), nilaiAkhir };
+    fetch(API_URL, { method: 'POST', body: JSON.stringify(data) })
+      .then(r => r.json())
+      .then(() => document.getElementById('save-status').innerHTML =
+        `<span style="color:#16a34a">✔ Data berhasil disimpan ke server</span>`)
+      .catch(() => document.getElementById('save-status').innerHTML =
+        `<span style="color:#dc2626">✖ Gagal menyimpan ke server</span>`);
+  } else {
+    document.getElementById('save-status').innerHTML = `<span style="color:var(--warn)">Mode Uji Coba: Data tidak disimpan ke server.</span>`;
+  }
 }
 
 function animateScore(target) {
