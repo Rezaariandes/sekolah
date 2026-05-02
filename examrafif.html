@@ -257,7 +257,7 @@ body::before {
   <div class="timeout-card">
     <div class="timeout-icon">⏰</div>
     <div class="timeout-title">Waktu Habis!</div>
-    <div class="timeout-sub">Waktu ujian telah berakhir. Jawaban kamu akan segera diproses dan hasilnya ditampilkan.</div>
+    <div class="timeout-sub">Waktu latihan telah berakhir. Jawaban kamu akan segera diproses dan hasilnya ditampilkan.</div>
     <button class="btn-timeout-ok" onclick="handleTimeoutOK()">Lihat Hasil →</button>
   </div>
 </div>
@@ -304,50 +304,27 @@ body::before {
 <div class="exam-nav">
   <button class="btn-nav btn-prev-nav" id="btn-prev" onclick="prevQuestion()">← Kembali</button>
   <button class="btn-nav btn-next-nav" id="btn-next" onclick="nextQuestion()">Selanjutnya →</button>
-  <button class="btn-nav btn-finish-nav" id="btn-finish" style="display:none" onclick="konfirmasiSelesai()">✓ Selesai Ujian</button>
+  <button class="btn-nav btn-finish-nav" id="btn-finish" style="display:none" onclick="konfirmasiSelesai()">✓ Selesai Latihan</button>
 </div>
 
 <script>
 const LETTERS = ['A','B','C','D','E'];
 
 // ══════════════════════════════════════════════════════════════════
-//  KONFIGURASI SUMBER SOAL — EDIT BAGIAN INI SAJA JIKA GID BERUBAH
+//  KONFIGURASI SUMBER SOAL
 // ══════════════════════════════════════════════════════════════════
 const SOAL_CONFIG = {
   SD: {
     _id: "2PACX-1vTf1y0JzJnyfI_EKzrfJjRB_PsgOkCzCW4knDBZ7TNg9rcxYxMj5gqaE_ONT5rcAIibmDznxL9X8xIv",
-    mapel: {
-      "IPAS"             : "0",
-      "Matematika"       : "1740600236",
-      "Bahasa Indonesia" : "948310843",
-      "PKn"              : "700533653",
-      "Bahasa Inggris"   : "1321766633",
-    }
+    mapel: { "IPAS": "0", "Matematika": "1740600236", "Bahasa Indonesia": "948310843", "PKn": "700533653", "Bahasa Inggris": "1321766633" }
   },
   SMP: {
     _id: "2PACX-1vTKNatYv72Y0YPKR-W1TgIbzoXMqk2MoO19x_ZyTHv0-Y04UoUK1XcykuGggsSh9WBwOSLDpuITRBo3",
-    mapel: {
-      "Matematika"           : "0",
-      "Fisika"               : "1052466164",
-      "Biologi"              : "1119171046",
-      "Bahasa Indonesia"     : "488278015",
-      "Bahasa Inggris"       : "1416093169",
-      "Sejarah"              : "1999033382",
-      "Geografi"             : "418037240",
-      "Pendidikan Pancasila" : "1007260452",
-    }
+    mapel: { "Matematika": "0", "Fisika": "1052466164", "Biologi": "1119171046", "Bahasa Indonesia": "488278015", "Bahasa Inggris": "1416093169", "Sejarah": "1999033382", "Geografi": "418037240", "Pendidikan Pancasila": "1007260452" }
   },
   SMA: {
     _id: "2PACX-1vRXAT5Yz3rtKwFv11E88Qt4WwdZ-frEO50mhWRAiC2bcLJqPgPThnnxI6F1fkSJ5D6jk_k_kgUqOhVK",
-    mapel: {
-      "Pendidikan Agama dan Budi Pekerti"                  : "0",
-      "Pendidikan Pancasila"                               : "793059494",
-      "Bahasa Indonesia"                                   : "1550922021",
-      "Matematika"                                         : "813778768",
-      "Bahasa Inggris"                                     : "1958590415",
-      "Sejarah"                                            : "1633816958",
-      "Pendidikan Jasmani, Olahraga, dan Kesehatan (PJOK)": "739515174",
-    }
+    mapel: { "Pendidikan Agama dan Budi Pekerti": "0", "Pendidikan Pancasila": "793059494", "Bahasa Indonesia": "1550922021", "Matematika": "813778768", "Bahasa Inggris": "1958590415", "Sejarah": "1633816958", "Pendidikan Jasmani, Olahraga, dan Kesehatan (PJOK)": "739515174" }
   },
 };
 
@@ -359,23 +336,20 @@ function resolveCSVUrl(tingkat, mapel) {
   return `https://docs.google.com/spreadsheets/d/e/${cfg._id}/pub?gid=${gid}&single=true&output=csv`;
 }
 
-// ── BACA PARAMETER DARI URL UNTUK EXAMRAFIF ──
+// ── BACA PARAMETER DARI URL ──
 const _p = new URLSearchParams(window.location.search);
-
-// Ini adalah mode latihan, kita ambil jumlah soal
 const customJmlSoal = parseInt(_p.get('jumlah_soal'));
 
-// Menghitung Batas Soal & Waktu:
-// Karena ini file khusus Latihan, kita paksa BATAS_SOAL sesuai inputan user
-// dan waktu kita set 2 Menit (120 Detik) per soal.
-let BATAS_SOAL = customJmlSoal > 0 ? customJmlSoal : 20; 
+// Atur Batas Soal dan Waktu (2 Menit per Soal)
+let BATAS_SOAL = (customJmlSoal > 0 && customJmlSoal <= 100) ? customJmlSoal : 20; 
 let TOTAL_SECONDS = BATAS_SOAL * 120; 
 
-const _nama   = _p.get('nama')    || sessionStorage.getItem('examNama')    || '';
-const _wa     = _p.get('wa')      || sessionStorage.getItem('examWA')      || '';
-const _tingkat= _p.get('tingkat') || sessionStorage.getItem('examTingkat') || '';
-const _kelas  = _p.get('kelas')   || sessionStorage.getItem('examKelas')   || '';
-const _mapel  = _p.get('mapel')   || sessionStorage.getItem('examMapel')   || '';
+// Menggunakan prefix "lat" (Latihan) agar tidak membentrok cache ujian resmi
+const _nama   = _p.get('nama')    || sessionStorage.getItem('latNama')    || '';
+const _wa     = _p.get('wa')      || sessionStorage.getItem('latWA')      || '';
+const _tingkat= _p.get('tingkat') || sessionStorage.getItem('latTingkat') || '';
+const _kelas  = _p.get('kelas')   || sessionStorage.getItem('latKelas')   || '';
+const _mapel  = _p.get('mapel')   || sessionStorage.getItem('latMapel')   || '';
 
 if (!_nama || !_tingkat || !_kelas || !_mapel) {
   alert("Sesi tidak ditemukan. Silakan isi form dari awal.");
@@ -383,14 +357,13 @@ if (!_nama || !_tingkat || !_kelas || !_mapel) {
 }
 
 // Simpan identitas
-['examNama','examWA','examTingkat','examKelas','examMapel'].forEach(k => {
-  const val = {examNama:_nama, examWA:_wa, examTingkat:_tingkat, examKelas:_kelas, examMapel:_mapel}[k];
+['latNama','latWA','latTingkat','latKelas','latMapel'].forEach(k => {
+  const val = {latNama:_nama, latWA:_wa, latTingkat:_tingkat, latKelas:_kelas, latMapel:_mapel}[k];
   sessionStorage.setItem(k, val);
   localStorage.setItem(k, val);
 });
 if (_p.get('nama')) history.replaceState(null, '', window.location.pathname);
 
-// Terapkan tema
 if (_tingkat) document.body.classList.add('theme-' + _tingkat);
 
 // Variabel global sesi
@@ -400,7 +373,7 @@ const tingkat   = _tingkat;
 const kelas     = _kelas;
 const mapel     = _mapel;
 
-// Beri label khusus "LATIHAN MANDIRI" agar siswa tahu ini bukan ujian resmi
+// Beri label LATIHAN MANDIRI
 const namaUjian = `[LATIHAN MANDIRI] ${mapel} · ${tingkat} Kelas ${kelas}`;
 
 document.getElementById('student-name').innerText = namaSiswa;
@@ -408,7 +381,7 @@ document.getElementById('student-subject').innerText = namaUjian;
 
 // ── State ──
 let idx = 0;
-let jawabanUser = JSON.parse(sessionStorage.getItem('examJawaban') || localStorage.getItem('examJawaban') || '{}');
+let jawabanUser = JSON.parse(sessionStorage.getItem('latJawaban') || localStorage.getItem('latJawaban') || '{}');
 let examFinished = false;
 let timeoutTriggered = false;
 let timerInterval = null;
@@ -427,13 +400,13 @@ jawabanUser = jawabanParsed;
 
 // ── Timer ──
 function startTimer() {
-  const saved = sessionStorage.getItem('examEndTime') || localStorage.getItem('examEndTime');
+  const saved = sessionStorage.getItem('latEndTime') || localStorage.getItem('latEndTime');
   if (saved) {
     examEndTime = parseInt(saved, 10);
   } else {
     examEndTime = Date.now() + TOTAL_SECONDS * 1000;
-    sessionStorage.setItem('examEndTime', examEndTime);
-    localStorage.setItem('examEndTime', examEndTime);
+    sessionStorage.setItem('latEndTime', examEndTime);
+    localStorage.setItem('latEndTime', examEndTime);
   }
   tickTimer();
   timerInterval = setInterval(tickTimer, 500);
@@ -480,4 +453,272 @@ function mulberry32(seed) {
     seed |= 0; seed = seed + 0x6D2B79F5 | 0;
     let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
     t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-    return ((t ^ t >>> 14) >>> 0) / 42
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function shuffleWithSeed(arr, seed) {
+  const rng = mulberry32(seed);
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const PRIMES = [104729,224737,350377,479909,611953,746773,882377,1020379,1159523,1299709];
+const pilihanOrder = {};
+
+// ── Nav Grid ──
+function buildNavGrid() {
+  const grid = document.getElementById('nav-grid');
+  grid.innerHTML = '';
+  soalAktif.forEach((_, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'nav-btn';
+    btn.textContent = i + 1;
+    btn.onclick = () => { idx = i; renderSoal(); };
+    grid.appendChild(btn);
+  });
+  updateNavGrid();
+}
+
+function updateNavGrid() {
+  document.querySelectorAll('.nav-btn').forEach((btn, i) => {
+    btn.classList.remove('answered', 'active');
+    if (jawabanUser[i] !== undefined) btn.classList.add('answered');
+    if (i === idx) btn.classList.add('active');
+  });
+}
+
+// ── Render Soal ──
+function renderSoal() {
+  const soal  = soalAktif[idx];
+  const saved = jawabanUser[idx];
+  const orderedPilihan = pilihanOrder[idx];
+
+  document.getElementById('progress-fill').style.width =
+    ((idx + 1) / soalAktif.length * 100) + '%';
+
+  let opts = '';
+  orderedPilihan.forEach((pil, i) => {
+    const sel = saved === pil;
+    opts += `<div class="opt${sel ? ' selected' : ''}" onclick="selectOption(this,${idx},'${pil.replace(/'/g, "\\'")}')">
+      <input type="radio" name="q" value="${pil}" ${sel ? 'checked' : ''}>
+      <div class="opt-letter">${LETTERS[i] || (i + 1)}</div>
+      <div class="opt-text">${pil}</div>
+    </div>`;
+  });
+
+  document.getElementById('question-container').innerHTML = `
+    <div class="q-card">
+      <div class="q-meta">
+        <div class="q-badge">Soal</div>
+        <div class="q-num-lbl">${String(idx + 1).padStart(2, '0')}</div>
+        <div class="q-of-lbl">dari <strong>${soalAktif.length}</strong></div>
+      </div>
+      <div class="q-text">${soal.pertanyaan}</div>
+      <div class="option-grid">${opts}</div>
+    </div>
+  `;
+
+  document.getElementById('btn-prev').disabled = (idx === 0);
+  const last = idx === soalAktif.length - 1;
+  document.getElementById('btn-next').style.display  = last ? 'none' : 'flex';
+  document.getElementById('btn-finish').style.display = last ? 'flex' : 'none';
+
+  updateNavGrid();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function selectOption(el, idSoal, nilai) {
+  document.querySelectorAll('.opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  jawabanUser[idSoal] = nilai;
+  sessionStorage.setItem('latJawaban', JSON.stringify(jawabanUser));
+  localStorage.setItem('latJawaban', JSON.stringify(jawabanUser));
+  updateNavGrid();
+}
+
+function nextQuestion() { if (idx < soalAktif.length - 1) { idx++; renderSoal(); } }
+function prevQuestion() { if (idx > 0) { idx--; renderSoal(); } }
+
+let navGridOpen = true;
+function toggleNavGrid() {
+  navGridOpen = !navGridOpen;
+  document.getElementById('nav-grid-wrap').style.display = navGridOpen ? 'block' : 'none';
+  document.getElementById('nav-toggle-icon').textContent = navGridOpen ? '▲ Sembunyikan' : '▼ Tampilkan';
+}
+
+function konfirmasiSelesai() {
+  const belum = soalAktif.filter((_, i) => jawabanUser[i] === undefined).length;
+  if (belum > 0) {
+    const ok = confirm(`Masih ada ${belum} soal yang belum dijawab. Yakin ingin menyelesaikan latihan?`);
+    if (!ok) return;
+  }
+  selesaiUjian();
+}
+
+function selesaiUjian() {
+  if (examFinished) return;
+  examFinished = true;
+  clearInterval(timerInterval);
+
+  // Bersihkan cache khusus latihan
+  ['latEndTime','latSoalAktif','latPilihanOrder','latJawaban'].forEach(k => {
+     localStorage.removeItem(k); sessionStorage.removeItem(k);
+  });
+
+  let skor = 0;
+  soalAktif.forEach((s, i) => { if (jawabanUser[i] == s.jawaban_benar) skor++; });
+  const nilaiAkhir = ((skor / soalAktif.length) * 100).toFixed(2);
+
+  // Simpan data untuk dikirim ke result.html
+  // Kita menggunakan format nama 'exam...' agar terbaca oleh result.html
+  const hasilData = {
+    hasilSkor:  String(skor),
+    hasilNilai: nilaiAkhir,
+    hasilTotal: String(soalAktif.length),
+    hasilWaktu: new Date().toISOString(),
+    examNama: namaSiswa,
+    examWA: _wa,
+    examTingkat: tingkat,
+    examKelas: kelas,
+    examMapel: mapel,
+    examJawaban: JSON.stringify(jawabanUser),
+    examSoalAktif: JSON.stringify(soalAktif)
+  };
+
+  Object.entries(hasilData).forEach(([k, v]) => {
+    sessionStorage.setItem(k, v);
+  });
+
+  // Lempar ke result dengan parameter trial=true agar tidak masuk database
+  window.location.href = 'result.html?trial=true';
+}
+
+// ── Init ──
+(async function initExam() {
+  document.getElementById('timer-display').textContent = 'Memuat...';
+
+  function parseCSV(text) {
+    const lines = text.trim().split(/\r?\n/);
+    if (lines.length < 2) return [];
+    const headers = splitCSVLine(lines[0]).map(h => h.trim());
+    return lines.slice(1).map(line => {
+      const vals = splitCSVLine(line);
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = (vals[i] || '').trim(); });
+      return obj;
+    });
+  }
+  function splitCSVLine(line) {
+    const result = []; let cur = ''; let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQ = !inQ; }
+      else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+      else { cur += c; }
+    }
+    result.push(cur);
+    return result;
+  }
+
+  try {
+    const cachedSoal    = sessionStorage.getItem('latSoalAktif')    || localStorage.getItem('latSoalAktif');
+    const cachedOrder   = sessionStorage.getItem('latPilihanOrder') || localStorage.getItem('latPilihanOrder');
+    const cachedEndTime = sessionStorage.getItem('latEndTime')      || localStorage.getItem('latEndTime');
+
+    if (cachedSoal && cachedOrder && cachedEndTime) {
+      soalAktif = JSON.parse(cachedSoal);
+      const orderParsed = JSON.parse(cachedOrder);
+      Object.keys(orderParsed).forEach(k => { pilihanOrder[parseInt(k)] = orderParsed[k]; });
+
+      buildNavGrid();
+      renderSoal();
+      startTimer();
+      return; 
+    }
+
+    const csvUrl = resolveCSVUrl(tingkat, mapel);
+
+    if (!csvUrl) {
+      alert(`Soal untuk "${tingkat} — ${mapel}" belum dikonfigurasi.`);
+      window.location.href = 'index.html';
+      return;
+    }
+
+    const res      = await fetch(csvUrl);
+    const csvText  = await res.text();
+    const rawData  = parseCSV(csvText);
+
+    const data = rawData
+      .filter(row => Object.values(row).some(v => v !== '')) 
+      .map(row => {
+        const pilihan = [
+          row['A'] || row['a'] || row['pilihan_a'] || row['Pilihan_A'] || '',
+          row['B'] || row['b'] || row['pilihan_b'] || row['Pilihan_B'] || '',
+          row['C'] || row['c'] || row['pilihan_c'] || row['Pilihan_C'] || '',
+          row['D'] || row['d'] || row['pilihan_d'] || row['Pilihan_D'] || '',
+          row['E'] || row['e'] || row['pilihan_e'] || row['Pilihan_E'] || '',
+        ].filter(p => p !== '');
+
+        const jawaban_benar =
+          row['jawaban_benar'] || row['Jawaban_Benar'] ||
+          row['kunci']         || row['Kunci']         ||
+          row['jawaban']       || row['Jawaban']       || '';
+
+        return {
+          kelas:         row['kelas']      || row['Kelas']      || '',
+          pertanyaan:    row['pertanyaan'] || row['Pertanyaan'] || row['soal'] || row['Soal'] || '',
+          jawaban_benar,
+          pilihan,
+        };
+      });
+
+    let filtered = data.filter(s =>
+      s.pertanyaan && (!s.kelas || String(s.kelas).trim() === String(kelas).trim())
+    );
+
+    if (!filtered.length) {
+      const tanpaKelas = data.filter(s => s.pertanyaan);
+      if (tanpaKelas.length) {
+        filtered = tanpaKelas;
+      } else {
+        alert(`Spreadsheet "${tingkat} — ${mapel}" belum tersedia.`);
+        window.location.href = 'index.html';
+        return;
+      }
+    }
+
+    soalAktif = filtered.sort(() => 0.5 - Math.random()).slice(0, BATAS_SOAL);
+    
+    sessionStorage.removeItem('latEndTime');
+    sessionStorage.removeItem('latJawaban');
+
+    jawabanUser = {};
+
+    soalAktif.forEach((soal, i) => {
+      const validPilihan = soal.pilihan.filter(p => p);
+      const seed = ((i + 1) * PRIMES[i % PRIMES.length]) >>> 0;
+      pilihanOrder[i] = shuffleWithSeed(validPilihan, seed);
+    });
+
+    sessionStorage.setItem('latSoalAktif',    JSON.stringify(soalAktif));
+    sessionStorage.setItem('latPilihanOrder', JSON.stringify(pilihanOrder));
+    localStorage.setItem('latSoalAktif',    JSON.stringify(soalAktif));
+    localStorage.setItem('latPilihanOrder', JSON.stringify(pilihanOrder));
+
+    buildNavGrid();
+    renderSoal();
+    startTimer();
+
+  } catch(e) {
+    document.getElementById('timer-display').textContent = '00:00';
+    console.error('initExam error:', e);
+    alert("Gagal memuat soal. Periksa koneksi internet.");
+  }
+})();
+</script>
+</body>
+</html>
